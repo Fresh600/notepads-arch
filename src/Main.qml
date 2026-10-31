@@ -34,7 +34,7 @@ ApplicationWindow {
     property int savedRevision: -1
     property var pendingSaves: ({})
     property int saveTag: 0
-    readonly property bool modalOpen: confirm.opened || shortcutsOverlay.opened
+    readonly property bool modalOpen: confirm.opened || shortcutsOverlay.opened || settings.recording
 
     Component {
         id: editorComponent
@@ -350,7 +350,29 @@ ApplicationWindow {
         if (docs.length === 0)
             newTab()
         savedRevision = sessionRevision
+        applyGlobalShortcut()
         focusEditor()
+    }
+
+    // Writes the desktop-wide shortcut to Hyprland the first time, and again
+    // whenever the setting and what Hyprland has drifted apart.
+    function applyGlobalShortcut() {
+        const wanted = Style.prefs.globalShortcut
+        if (wanted === Style.prefs.appliedShortcut)
+            return
+        const taken = wanted ? globalShortcut.conflict(wanted) : ""
+        if (taken) {
+            showMessage(qsTr("%1 is already used by \"%2\", so Notepads didn't take it. Pick a key in Settings > Advanced.")
+                        .arg(globalShortcut.displayName(wanted)).arg(taken))
+            Style.prefs.globalShortcut = ""
+            Style.prefs.appliedShortcut = ""
+            return
+        }
+        const error = globalShortcut.apply(wanted)
+        if (error)
+            showMessage(error)
+        else
+            Style.prefs.appliedShortcut = wanted
     }
 
     Connections {

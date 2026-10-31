@@ -34,6 +34,7 @@ Item {
         if (!result.ok)
             return result.error
         textArea.text = result.text
+        backend.applyDirections(textArea.textDocument)
         filePath = path
         encoding = result.encoding
         lineEnding = result.lineEnding || Style.prefs.defaultLineEnding
@@ -89,6 +90,7 @@ Item {
     function restore(state) {
         if (state.modified) {
             textArea.text = state.text || ""
+            backend.applyDirections(textArea.textDocument)
             filePath = state.path || ""
             encoding = state.encoding || Style.prefs.defaultEncoding
             lineEnding = state.lineEnding || Style.prefs.defaultLineEnding
@@ -136,6 +138,8 @@ Item {
         onTriggered: preview.text = textArea.text
     }
 
+    Component.onCompleted: backend.attachDirections(textArea.textDocument)
+
     onPreviewVisibleChanged: if (previewVisible) preview.text = textArea.text
 
     RowLayout {
@@ -154,8 +158,10 @@ Item {
 
                 textFormat: TextEdit.PlainText
                 wrapMode: Style.prefs.wrapWord ? TextEdit.Wrap : TextEdit.NoWrap
-                font.family: Style.prefs.fontFamily
-                font.pointSize: Math.max(4, Style.prefs.fontSize * editor.zoom / 100)
+                // Hebrew and Arabic fonts first: they only cover their own
+                // script, so everything else falls through to the editor font.
+                font: backend.editorFont(Style.editorFamilies, Style.prefs.fontSize * editor.zoom / 100,
+                                         Style.prefs.wordSpacing * editor.zoom / 100)
                 color: Style.text
                 selectionColor: Style.accent
                 selectedTextColor: Style.accentText

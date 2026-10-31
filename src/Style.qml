@@ -29,6 +29,13 @@ QtObject {
         property string customAccent: "#0078d4"
         property bool showStatusBar: true
         property bool sessionSnapshot: true
+        // Extra space between words, in pixels at 100% zoom.
+        property real wordSpacing: 0
+        property bool proportionalRtl: true
+        // The desktop-wide key that opens Notepads, and the one last written
+        // to Hyprland; they differ until it has been applied.
+        property string globalShortcut: "SUPER + ALT + N"
+        property string appliedShortcut: ""
         property var recentFiles: []
     }
 
@@ -57,6 +64,9 @@ QtObject {
     readonly property color pressed: withAlpha(text, 0.13)
     readonly property color lineHighlight: withAlpha(text, dark ? 0.05 : 0.06)
     readonly property color danger: dark ? "#ff6b78" : "#c42b1c"
+
+    readonly property var rtlFamilies: backend.rightToLeftFamilies()
+    readonly property var editorFamilies: prefs.proportionalRtl ? rtlFamilies.concat([prefs.fontFamily]) : [prefs.fontFamily]
 
     readonly property int radius: theme.radius
     readonly property int smallRadius: Math.min(4, theme.radius)

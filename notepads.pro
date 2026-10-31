@@ -7,6 +7,8 @@ TEMPLATE = app
 HEADERS += \
     src/backend.h \
     src/filepicker.h \
+    src/globalshortcut.h \
+    src/paragraphdirection.h \
     src/iconprovider.h \
     src/portalfilepicker.h \
     src/textcodec.h \
@@ -16,6 +18,8 @@ HEADERS += \
 SOURCES += \
     src/main.cpp \
     src/backend.cpp \
+    src/globalshortcut.cpp \
+    src/paragraphdirection.cpp \
     src/iconprovider.cpp \
     src/portalfilepicker.cpp \
     src/textcodec.cpp \

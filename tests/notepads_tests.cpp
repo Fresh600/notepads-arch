@@ -1,11 +1,14 @@
 #include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
+#include <QTextBlock>
 #include <QTextDocument>
 #include <QtTest>
 
 #include "backend.h"
 #include "filepicker.h"
+#include "globalshortcut.h"
+#include "paragraphdirection.h"
 #include "textcodec.h"
 #include "theme.h"
 #include "translator.h"
@@ -200,6 +203,94 @@ private slots:
         QCOMPARE(saved.at(0).at(0).toString(), QString("/tmp/x.txt"));
         QCOMPARE(saved.at(0).at(1).toInt(), 7);
         QCOMPARE(opened.count(), 1);
+    }
+
+    void eachParagraphGetsItsOwnDirection()
+    {
+        QTextDocument document;
+        document.setPlainText(QString::fromUtf8("שלום עולם\nHello world\n\n123\nמשפט with English"));
+        document.setModified(false);
+        ParagraphDirection::updateAll(&document);
+        auto direction = [&](int block) { return document.findBlockByNumber(block).blockFormat().layoutDirection(); };
+        QCOMPARE(direction(0), Qt::RightToLeft);
+        QCOMPARE(direction(1), Qt::LeftToRight);
+        // Lines with no letters follow the paragraph before them.
+        QCOMPARE(direction(2), Qt::LeftToRight);
+        QCOMPARE(direction(3), Qt::LeftToRight);
+        QCOMPARE(direction(4), Qt::RightToLeft);
+        QVERIFY(!document.isModified());
+        QVERIFY(!document.isUndoAvailable());
+    }
+
+    void directionFollowsEditsAndUndoesWithThem()
+    {
+        QTextDocument document;
+        document.setPlainText("hello");
+        ParagraphDirection::updateAll(&document);
+        QTextCursor cursor(&document);
+        cursor.setPosition(0);
+        cursor.select(QTextCursor::BlockUnderCursor);
+        cursor.insertText(QString::fromUtf8("שלום"));
+        QCOMPARE(ParagraphDirection::update(&document, 0, 4), 1);
+        QCOMPARE(document.firstBlock().blockFormat().layoutDirection(), Qt::RightToLeft);
+        document.undo();
+        QCOMPARE(document.toPlainText(), QString("hello"));
+        QCOMPARE(document.firstBlock().blockFormat().layoutDirection(), Qt::LeftToRight);
+        QCOMPARE(ParagraphDirection::update(&document, 0, 5), 0);
+    }
+
+    void directionDoesNotChangeTheSavedText()
+    {
+        QTextDocument document;
+        document.setPlainText(QString::fromUtf8("שלום\nhi"));
+        ParagraphDirection::updateAll(&document);
+        QCOMPARE(Backend::plainText(&document), QString::fromUtf8("שלום\nhi"));
+    }
+
+    void shortcutsAreNormalized()
+    {
+        QCOMPARE(GlobalShortcut::normalize("alt+super+n"), QString("SUPER + ALT + N"));
+        QCOMPARE(GlobalShortcut::normalize("Meta + Shift + F5"), QString("SUPER + SHIFT + F5"));
+        QVERIFY(GlobalShortcut::normalize("N").isEmpty());
+        QVERIFY(GlobalShortcut::normalize("SUPER + ALT").isEmpty());
+        QCOMPARE(GlobalShortcut::modmask("SUPER + ALT + N"), 72);
+        QCOMPARE(GlobalShortcut::displayName("SUPER + ALT + N"), QString("Super+Alt+N"));
+    }
+
+    void shortcutGoesInItsOwnFile()
+    {
+        QTemporaryDir dir;
+        write(dir.filePath("hyprland.lua"), "require(\"hypr.bindings\")");
+        GlobalShortcut shortcut(dir.path(), "/usr/bin/true");
+        QVERIFY(shortcut.apply("SUPER + ALT + N").isEmpty());
+
+        QFile own(dir.filePath("notepads.lua"));
+        QVERIFY(own.open(QIODevice::ReadOnly));
+        QVERIFY(own.readAll().contains("o.bind(\"SUPER + ALT + N\", \"Notepads\", { launch = \"notepads\", focus = \"^notepads$\" })"));
+        own.close();
+
+        // The require is added once, after a backup, and the rest is kept.
+        QVERIFY(shortcut.apply("SUPER + ALT + K").isEmpty());
+        QFile main(dir.filePath("hyprland.lua"));
+        QVERIFY(main.open(QIODevice::ReadOnly));
+        const QByteArray text = main.readAll();
+        QVERIFY(text.startsWith("require(\"hypr.bindings\")"));
+        QCOMPARE(text.count("pcall(require, \"hypr.notepads\")"), 1);
+        QCOMPARE(QDir(dir.path()).entryList({"hyprland.lua.bak.*"}).size(), 1);
+
+        // Removing the shortcut leaves the file with no binding.
+        QVERIFY(shortcut.apply("").isEmpty());
+        QVERIFY(own.open(QIODevice::ReadOnly));
+        QVERIFY(!own.readAll().contains("o.bind"));
+    }
+
+    void shortcutNeedsHyprlandConfigAndAModifier()
+    {
+        QTemporaryDir dir;
+        GlobalShortcut shortcut(dir.path(), "/usr/bin/true");
+        QVERIFY(!shortcut.apply("SUPER + N").isEmpty());
+        write(dir.filePath("hyprland.lua"), "");
+        QVERIFY(!shortcut.apply("N").isEmpty());
     }
 
     void themeFallsBack()

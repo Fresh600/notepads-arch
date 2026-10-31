@@ -4,6 +4,7 @@
 #include <QCommandLineParser>
 #include <QDir>
 #include <QFileInfo>
+#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -13,6 +14,7 @@
 #include <QUrl>
 
 #include "backend.h"
+#include "globalshortcut.h"
 #include "iconprovider.h"
 #include "portalfilepicker.h"
 #include "theme.h"
@@ -48,6 +50,10 @@ int main(int argc, char *argv[]) {
 
     QQuickStyle::setStyle("Material");
 
+    // Hebrew letters only (a subset of Noto Sans Hebrew), so Hebrew can use a
+    // proportional face while spaces, digits, and Latin keep the editor font.
+    QFontDatabase::addApplicationFont(":/fonts/NotepadsHebrew-Regular.ttf");
+
     // Installed before anything is translated, and every qsTr() binding is
     // re-evaluated when the Omarchy language changes.
     Translator translator;
@@ -57,6 +63,7 @@ int main(int argc, char *argv[]) {
     PortalFilePicker picker;
     Backend backend(&picker);
     backend.setStartupFiles(files);
+    GlobalShortcut shortcut;
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("icon", new IconProvider);
@@ -64,6 +71,7 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty("translator", &translator);
     engine.rootContext()->setContextProperty("theme", &theme);
     engine.rootContext()->setContextProperty("backend", &backend);
+    engine.rootContext()->setContextProperty("globalShortcut", &shortcut);
     engine.rootContext()->setContextProperty("appVersion", app.applicationVersion());
     engine.load(QUrl("qrc:/Main.qml"));
     if (engine.rootObjects().isEmpty())

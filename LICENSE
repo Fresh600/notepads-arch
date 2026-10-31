@@ -4,6 +4,9 @@ Copyright (c) 2026 Omri
 
 Portions (the theme watcher, translator, and portal file picker) are adapted
 from Omacut and Monologue, Copyright (c) David Heinemeier Hansson, MIT.
+The bundled src/fonts/NotepadsHebrew-Regular.ttf is a subset of Noto Sans Hebrew,
+Copyright The Noto Project Authors, under the SIL Open Font License 1.1
+(src/fonts/OFL.txt).
 The design follows Notepads by Jackie Liu (https://github.com/0x7c13/Notepads), MIT.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

@@ -17,6 +17,7 @@
         <file alias="ConfirmDialog.qml">ConfirmDialog.qml</file>
         <file alias="ShortcutsOverlay.qml">ShortcutsOverlay.qml</file>
         <file alias="i18n/en.json">i18n/en.json</file>
+        <file alias="fonts/NotepadsHebrew-Regular.ttf">fonts/NotepadsHebrew-Regular.ttf</file>
         <file alias="notepads.svg">../pkgbuild/notepads.svg</file>
         <file alias="icons/add.svg">icons/add.svg</file>
         <file alias="icons/arrow-down.svg">icons/arrow-down.svg</file>

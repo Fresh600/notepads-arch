@@ -10,6 +10,69 @@ Popup {
     id: panel
 
     property int page: 0
+    property bool recording: false
+    property string shortcutError: ""
+
+    onClosed: recording = false
+
+    // Hyprland's names for the keys Qt reports.
+    function keyName(event) {
+        const k = event.key
+        if ((k >= Qt.Key_A && k <= Qt.Key_Z) || (k >= Qt.Key_0 && k <= Qt.Key_9))
+            return String.fromCharCode(k)
+        if (k >= Qt.Key_F1 && k <= Qt.Key_F24)
+            return "F" + (k - Qt.Key_F1 + 1)
+        const names = {}
+        names[Qt.Key_Space] = "SPACE"; names[Qt.Key_Return] = "RETURN"; names[Qt.Key_Enter] = "RETURN"
+        names[Qt.Key_Tab] = "TAB"; names[Qt.Key_Backspace] = "BACKSPACE"; names[Qt.Key_Delete] = "DELETE"
+        names[Qt.Key_Insert] = "INSERT"; names[Qt.Key_Home] = "HOME"; names[Qt.Key_End] = "END"
+        names[Qt.Key_PageUp] = "PAGE_UP"; names[Qt.Key_PageDown] = "PAGE_DOWN"
+        names[Qt.Key_Left] = "LEFT"; names[Qt.Key_Right] = "RIGHT"; names[Qt.Key_Up] = "UP"; names[Qt.Key_Down] = "DOWN"
+        names[Qt.Key_Minus] = "MINUS"; names[Qt.Key_Equal] = "EQUAL"; names[Qt.Key_Comma] = "COMMA"
+        names[Qt.Key_Period] = "PERIOD"; names[Qt.Key_Slash] = "SLASH"; names[Qt.Key_Semicolon] = "SEMICOLON"
+        names[Qt.Key_Apostrophe] = "APOSTROPHE"; names[Qt.Key_BracketLeft] = "BRACKETLEFT"
+        names[Qt.Key_BracketRight] = "BRACKETRIGHT"; names[Qt.Key_Backslash] = "BACKSLASH"; names[Qt.Key_QuoteLeft] = "GRAVE"
+        return names[k] || ""
+    }
+
+    function recordShortcut(event) {
+        event.accepted = true
+        const modifierKeys = [Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R, Qt.Key_Control, Qt.Key_Shift, Qt.Key_Alt, Qt.Key_AltGr]
+        if (modifierKeys.indexOf(event.key) >= 0)
+            return
+        if (event.key === Qt.Key_Escape && event.modifiers === Qt.NoModifier) {
+            recording = false
+            return
+        }
+        const key = keyName(event)
+        const parts = []
+        if (event.modifiers & Qt.MetaModifier) parts.push("SUPER")
+        if (event.modifiers & Qt.ControlModifier) parts.push("CTRL")
+        if (event.modifiers & Qt.ShiftModifier) parts.push("SHIFT")
+        if (event.modifiers & Qt.AltModifier) parts.push("ALT")
+        if (!key || parts.length === 0) {
+            shortcutError = qsTr("Hold at least one of Super, Ctrl, Alt, or Shift, then press a key.")
+            return
+        }
+        recording = false
+        setShortcut(parts.concat([key]).join(" + "))
+    }
+
+    function setShortcut(combo) {
+        shortcutError = ""
+        const taken = combo ? globalShortcut.conflict(combo) : ""
+        if (taken) {
+            shortcutError = qsTr("%1 is already used by \"%2\".").arg(globalShortcut.displayName(combo)).arg(taken)
+            return
+        }
+        const error = globalShortcut.apply(combo)
+        if (error) {
+            shortcutError = error
+            return
+        }
+        Style.prefs.globalShortcut = combo
+        Style.prefs.appliedShortcut = combo
+    }
     readonly property var pages: [
         { icon: "text-editor", title: qsTr("Text & Editor") },
         { icon: "palette", title: qsTr("Personalization") },
@@ -157,6 +220,12 @@ Popup {
                     }
 
                     Heading { text: qsTr("Font") }
+                    Toggle {
+                        visible: Style.rtlFamilies.length > 0
+                        text: qsTr("Proportional font for Hebrew")
+                        checked: Style.prefs.proportionalRtl
+                        onToggled: Style.prefs.proportionalRtl = checked
+                    }
                     ComboBox {
                         id: fontBox
                         implicitHeight: 40
@@ -180,6 +249,35 @@ Popup {
                         displayText: Style.prefs.fontSize
                         onActivated: index => Style.prefs.fontSize = model[index]
                     }
+
+                    Heading { text: qsTr("Word Spacing") }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Slider {
+                            id: spacingSlider
+                            Layout.fillWidth: true
+                            Material.accent: Style.accent
+                            from: 0
+                            to: 20
+                            stepSize: 0.5
+                            value: Style.prefs.wordSpacing
+                            onMoved: Style.prefs.wordSpacing = value
+                        }
+                        Text {
+                            text: qsTr("%1 px").arg(Style.prefs.wordSpacing.toLocaleString(Qt.locale(), 'f', 1))
+                            color: Style.muted
+                            font.pixelSize: 12
+                            Layout.preferredWidth: 44
+                        }
+                        IconButton {
+                            implicitWidth: 32
+                            icon: "undo"
+                            tip: qsTr("Reset to normal spacing")
+                            enabled: Style.prefs.wordSpacing !== 0
+                            onClicked: Style.prefs.wordSpacing = 0
+                        }
+                    }
+                    Note { text: qsTr("Extra space between words, added to the font's own.") }
 
                     Heading { text: qsTr("Tab Indentation") }
                     ComboBox {
@@ -331,6 +429,66 @@ Popup {
                         checked: Style.prefs.showStatusBar
                         onToggled: Style.prefs.showStatusBar = checked
                     }
+
+                    Heading { text: qsTr("Global Shortcut") }
+                    Note {
+                        font.italic: false
+                        text: qsTr("Opens Notepads from anywhere, or brings it forward when it's already open.")
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 4
+                        spacing: 8
+
+                        Rectangle {
+                            id: shortcutBox
+                            Layout.fillWidth: true
+                            implicitHeight: 34
+                            radius: Style.smallRadius
+                            color: Style.field
+                            border.color: panel.recording ? Style.accent : Style.border
+                            focus: panel.recording
+
+                            Text {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                font.pixelSize: 13
+                                color: panel.recording || !Style.prefs.globalShortcut ? Style.muted : Style.text
+                                text: panel.recording ? qsTr("Press the new shortcut… (Esc cancels)")
+                                      : Style.prefs.globalShortcut ? globalShortcut.displayName(Style.prefs.globalShortcut)
+                                      : qsTr("None")
+                            }
+
+                            Keys.onPressed: event => panel.recordShortcut(event)
+                        }
+                        FlatButton {
+                            text: panel.recording ? qsTr("Cancel") : qsTr("Change")
+                            onClicked: {
+                                panel.shortcutError = ""
+                                panel.recording = !panel.recording
+                                if (panel.recording)
+                                    shortcutBox.forceActiveFocus()
+                            }
+                        }
+                        IconButton {
+                            implicitWidth: 32
+                            icon: "close"
+                            tip: qsTr("Remove the shortcut")
+                            visible: Style.prefs.globalShortcut !== "" && !panel.recording
+                            onClicked: panel.setShortcut("")
+                        }
+                    }
+                    Text {
+                        visible: panel.shortcutError !== ""
+                        Layout.fillWidth: true
+                        text: panel.shortcutError
+                        color: Style.danger
+                        font.pixelSize: 12
+                        wrapMode: Text.Wrap
+                    }
+                    Note { text: qsTr("Saved as a Hyprland binding in ~/.config/hypr/notepads.lua.") }
 
                     Heading { text: qsTr("Session Snapshot") }
                     Toggle {

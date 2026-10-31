@@ -15,6 +15,12 @@ and follows your Omarchy theme, accent, rounding, and language.
 - Find and replace, with match case, whole word, and regular expressions
   (`$1` or `\1` in replacements)
 - Markdown live preview side by side (Alt+P)
+- Hebrew reads naturally: every paragraph gets its own direction, and Hebrew
+  letters use a bundled proportional face (a subset of Noto Sans Hebrew)
+  while code and English keep your monospace font
+- Adjustable word spacing
+- A global shortcut that opens Notepads or brings it forward, Super+Alt+N by
+  default, changeable in Settings > Advanced
 - Word wrap, line highlight, font, tab width, and tint opacity in settings
 - Saves atomically: writes beside the file, then renames over it
 - Open and save dialogs through the XDG desktop portal
@@ -63,6 +69,11 @@ Q and ?.
 bin/build      # build/notepads
 bin/test       # unit tests, offscreen
 ```
+
+The global shortcut is a Hyprland binding that Notepads writes to
+`~/.config/hypr/notepads.lua`. The first time, it appends one line to
+`~/.config/hypr/hyprland.lua` to load that file (after saving a
+`hyprland.lua.bak.<time>` copy); it never edits your other bindings.
 
 Settings live in `~/.config/notepads/notepads.conf`, and the session snapshot
 in `~/.local/state/notepads/session.json` (readable only by you). When two

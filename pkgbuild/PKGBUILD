@@ -18,6 +18,7 @@ package() {
   cd "$startdir/.."
   install -Dm755 build/notepads "$pkgdir/usr/bin/notepads"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 src/fonts/OFL.txt "$pkgdir/usr/share/licenses/$pkgname/OFL-NotepadsHebrew.txt"
   install -Dm644 "$startdir/notepads.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/notepads.svg"
   install -Dm644 "$startdir/notepads.desktop" "$pkgdir/usr/share/applications/notepads.desktop"
 }

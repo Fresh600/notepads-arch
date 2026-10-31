@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QLockFile>
+#include <QFont>
 #include <QObject>
 #include <QStringList>
 #include <QTextCursor>
@@ -48,6 +49,17 @@ public:
                                          const QString &replacement, const QVariantMap &options) const;
     Q_INVOKABLE int replaceAll(QQuickTextDocument *document, const QString &query, const QString &replacement,
                                const QVariantMap &options) const;
+
+    // Per-paragraph reading direction (see ParagraphDirection): attach once
+    // per document, and recompute everything after loading new text.
+    Q_INVOKABLE void attachDirections(QQuickTextDocument *document) const;
+    Q_INVOKABLE void applyDirections(QQuickTextDocument *document) const;
+    // Proportional fonts for right-to-left scripts, put ahead of the editor
+    // font so Hebrew doesn't get spaced-out monospace letters. They cover
+    // only their own letters, so everything else keeps the editor font.
+    Q_INVOKABLE QStringList rightToLeftFamilies() const;
+    // QML's font has no family list, so the editor's font is built here.
+    Q_INVOKABLE QFont editorFont(const QStringList &families, qreal pointSize, qreal wordSpacing) const;
 
     Q_INVOKABLE QString fileName(const QString &path) const;
     Q_INVOKABLE QString folderOf(const QString &path) const;

@@ -5,5 +5,5 @@ TEMPLATE = app
 
 INCLUDEPATH += ../src
 
-HEADERS += ../src/backend.h ../src/filepicker.h ../src/textcodec.h ../src/theme.h ../src/translator.h
-SOURCES += notepads_tests.cpp ../src/backend.cpp ../src/textcodec.cpp ../src/theme.cpp ../src/translator.cpp
+HEADERS += ../src/globalshortcut.h ../src/paragraphdirection.h ../src/backend.h ../src/filepicker.h ../src/textcodec.h ../src/theme.h ../src/translator.h
+SOURCES += notepads_tests.cpp ../src/globalshortcut.cpp ../src/paragraphdirection.cpp ../src/backend.cpp ../src/textcodec.cpp ../src/theme.cpp ../src/translator.cpp

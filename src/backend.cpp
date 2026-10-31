@@ -1,12 +1,15 @@
 #include "backend.h"
 
 #include "filepicker.h"
+#include "paragraphdirection.h"
 #include "textcodec.h"
 
 #include <QClipboard>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFontDatabase>
+#include <QFontInfo>
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -278,6 +281,43 @@ int Backend::replaceAllIn(QTextDocument *document, const QString &query, const Q
 int Backend::replaceAll(QQuickTextDocument *document, const QString &query, const QString &replacement,
                         const QVariantMap &options) const {
     return replaceAllIn(textDocumentOf(document), query, replacement, options);
+}
+
+void Backend::attachDirections(QQuickTextDocument *document) const {
+    QTextDocument *doc = textDocumentOf(document);
+    if (doc && !doc->findChild<ParagraphDirection *>(QString(), Qt::FindDirectChildrenOnly))
+        new ParagraphDirection(doc);
+}
+
+void Backend::applyDirections(QQuickTextDocument *document) const {
+    ParagraphDirection::updateAll(textDocumentOf(document));
+}
+
+QStringList Backend::rightToLeftFamilies() const {
+    // Only fonts that hold nothing but their own script belong here: any
+    // space or Latin glyph in them would replace the editor font's.
+    static const QStringList preferred{"Notepads Hebrew"};
+    const QStringList installed = QFontDatabase::families();
+    QStringList families;
+    for (const QString &family : preferred)
+        if (installed.contains(family))
+            families.append(family);
+    return families;
+}
+
+QFont Backend::editorFont(const QStringList &families, qreal pointSize, qreal wordSpacing) const {
+    // Fontconfig aliases like "monospace" only resolve as a font's first
+    // family, so later ones are turned into the real family name.
+    QStringList resolved;
+    for (const QString &family : families) {
+        static const QStringList aliases{"monospace", "sans-serif", "sans", "serif"};
+        resolved.append(aliases.contains(family) ? QFontInfo(QFont(family)).family() : family);
+    }
+    QFont font;
+    font.setFamilies(resolved);
+    font.setPointSizeF(qMax<qreal>(4, pointSize));
+    font.setWordSpacing(wordSpacing);
+    return font;
 }
 
 QString Backend::fileName(const QString &path) const {
