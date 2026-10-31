@@ -8,6 +8,7 @@ url='https://github.com/Fresh600/notepads-arch'
 license=('MIT' 'OFL-1.1')
 depends=('qt6-base' 'qt6-declarative' 'qt6-svg' 'qt6-wayland' 'xdg-desktop-portal')
 makedepends=('gcc' 'make')
+options=('!debug')
 provides=('notepads')
 conflicts=('notepads')
 replaces=('notepads')
