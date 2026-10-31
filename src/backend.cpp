@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QFontInfo>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -305,7 +306,7 @@ QStringList Backend::rightToLeftFamilies() const {
     return families;
 }
 
-QFont Backend::editorFont(const QStringList &families, qreal pointSize, qreal wordSpacing) const {
+QFont Backend::editorFont(const QStringList &families, qreal pointSize, qreal spacingPercent) const {
     // Fontconfig aliases like "monospace" only resolve as a font's first
     // family, so later ones are turned into the real family name.
     QStringList resolved;
@@ -316,7 +317,17 @@ QFont Backend::editorFont(const QStringList &families, qreal pointSize, qreal wo
     QFont font;
     font.setFamilies(resolved);
     font.setPointSizeF(qMax<qreal>(4, pointSize));
-    font.setWordSpacing(wordSpacing);
+    // Qt adds word spacing to the space's own width; a negative amount
+    // narrows it. The space comes from the editor font, since the Hebrew
+    // face has none.
+    const qreal space = QFontMetricsF(font).horizontalAdvance(QLatin1Char(' '));
+    font.setWordSpacing(space * (qBound<qreal>(0, spacingPercent, 400) - 100) / 100);
+    return font;
+}
+
+QFont Backend::gutterFont(const QString &family, qreal pointSize) const {
+    QFont font(family);
+    font.setPointSizeF(qMax<qreal>(4, pointSize * 0.9));
     return font;
 }
 

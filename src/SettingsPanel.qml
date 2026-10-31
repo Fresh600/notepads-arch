@@ -212,6 +212,16 @@ Popup {
                         onToggled: Style.prefs.wrapWord = checked
                     }
 
+                    Note { text: qsTr("Documents with Hebrew always wrap, so right-to-left lines stay in view.") }
+
+                    Heading { text: qsTr("Line Numbers") }
+                    Toggle {
+                        text: qsTr("Show line numbers")
+                        checked: Style.prefs.lineNumbers
+                        onToggled: Style.prefs.lineNumbers = checked
+                    }
+                    Note { text: qsTr("Hebrew lines are numbered on the right.") }
+
                     Heading { text: qsTr("Line Highlighter") }
                     Toggle {
                         text: qsTr("Highlight the current line")
@@ -253,31 +263,47 @@ Popup {
                     Heading { text: qsTr("Word Spacing") }
                     RowLayout {
                         Layout.fillWidth: true
+                        spacing: 2
+                        IconButton {
+                            implicitWidth: 28
+                            icon: "minus"
+                            tip: qsTr("Narrower")
+                            enabled: Style.prefs.wordSpacingPercent > spacingSlider.from
+                            onClicked: Style.prefs.wordSpacingPercent = Math.max(spacingSlider.from, Style.prefs.wordSpacingPercent - 1)
+                        }
                         Slider {
                             id: spacingSlider
                             Layout.fillWidth: true
                             Material.accent: Style.accent
-                            from: 0
-                            to: 20
-                            stepSize: 0.5
-                            value: Style.prefs.wordSpacing
-                            onMoved: Style.prefs.wordSpacing = value
-                        }
-                        Text {
-                            text: qsTr("%1 px").arg(Style.prefs.wordSpacing.toLocaleString(Qt.locale(), 'f', 1))
-                            color: Style.muted
-                            font.pixelSize: 12
-                            Layout.preferredWidth: 44
+                            from: 20
+                            to: 300
+                            stepSize: 1
+                            value: Style.prefs.wordSpacingPercent
+                            onMoved: Style.prefs.wordSpacingPercent = Math.round(value)
                         }
                         IconButton {
-                            implicitWidth: 32
+                            implicitWidth: 28
+                            icon: "add"
+                            tip: qsTr("Wider")
+                            enabled: Style.prefs.wordSpacingPercent < spacingSlider.to
+                            onClicked: Style.prefs.wordSpacingPercent = Math.min(spacingSlider.to, Style.prefs.wordSpacingPercent + 1)
+                        }
+                        Text {
+                            text: Style.prefs.wordSpacingPercent + "%"
+                            color: Style.muted
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 40
+                        }
+                        IconButton {
+                            implicitWidth: 28
                             icon: "undo"
-                            tip: qsTr("Reset to normal spacing")
-                            enabled: Style.prefs.wordSpacing !== 0
-                            onClicked: Style.prefs.wordSpacing = 0
+                            tip: qsTr("Reset to the font's own spacing")
+                            enabled: Style.prefs.wordSpacingPercent !== 100
+                            onClicked: Style.prefs.wordSpacingPercent = 100
                         }
                     }
-                    Note { text: qsTr("Extra space between words, added to the font's own.") }
+                    Note { text: qsTr("100% is the font's own space. Below 100% brings words closer. Spaces used for indentation change too.") }
 
                     Heading { text: qsTr("Tab Indentation") }
                     ComboBox {
@@ -433,7 +459,7 @@ Popup {
                     Heading { text: qsTr("Global Shortcut") }
                     Note {
                         font.italic: false
-                        text: qsTr("Opens Notepads from anywhere, or brings it forward when it's already open.")
+                        text: qsTr("Opens a new Notepads window from anywhere, the way the terminal does.")
                     }
                     RowLayout {
                         Layout.fillWidth: true

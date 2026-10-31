@@ -18,6 +18,9 @@ public:
     // Writes the binding and reloads Hyprland. An empty combo removes it.
     // Returns an error message, or an empty string on success.
     Q_INVOKABLE QString apply(const QString &combo);
+    // Rewrites notepads.lua when a newer Notepads writes the binding
+    // differently, leaving hyprland.lua alone.
+    Q_INVOKABLE QString refresh(const QString &combo);
     // What already uses the combo, from Hyprland's live bindings; empty when
     // it is free or Notepads' own.
     Q_INVOKABLE QString conflict(const QString &combo) const;

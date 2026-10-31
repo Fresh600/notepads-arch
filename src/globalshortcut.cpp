@@ -82,7 +82,8 @@ QString GlobalShortcut::bindingFile(const QString &combo) {
         "-- Change the key there; edits here are replaced the next time it is set.\n");
     const QString normalized = normalize(combo);
     if (!normalized.isEmpty())
-        text += QStringLiteral("o.bind(\"%1\", \"Notepads\", { launch = \"notepads\", focus = \"^notepads$\" })\n")
+        // A new window every time, like the terminal; Hyprland tiles it.
+        text += QStringLiteral("o.bind(\"%1\", \"Notepads\", { launch = \"notepads\" })\n")
                     .arg(normalized);
     return text;
 }
@@ -152,6 +153,17 @@ QString GlobalShortcut::conflict(const QString &combo) const {
         return description.isEmpty() ? bind.value("arg").toString() : description;
     }
     return {};
+}
+
+QString GlobalShortcut::refresh(const QString &combo) {
+    QFile file(m_directory + "/notepads.lua");
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    const QByteArray current = file.readAll();
+    file.close();
+    if (current == bindingFile(normalize(combo)).toUtf8())
+        return {};
+    return apply(combo);
 }
 
 QString GlobalShortcut::apply(const QString &combo) {

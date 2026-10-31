@@ -59,7 +59,11 @@ public:
     // only their own letters, so everything else keeps the editor font.
     Q_INVOKABLE QStringList rightToLeftFamilies() const;
     // QML's font has no family list, so the editor's font is built here.
-    Q_INVOKABLE QFont editorFont(const QStringList &families, qreal pointSize, qreal wordSpacing) const;
+    // spacingPercent sizes the space between words: 100 is the font's own
+    // space, 50 half of it, 200 double.
+    Q_INVOKABLE QFont editorFont(const QStringList &families, qreal pointSize, qreal spacingPercent) const;
+    // The line numbers' font: the editor's own face, a little smaller.
+    Q_INVOKABLE QFont gutterFont(const QString &family, qreal pointSize) const;
 
     Q_INVOKABLE QString fileName(const QString &path) const;
     Q_INVOKABLE QString folderOf(const QString &path) const;

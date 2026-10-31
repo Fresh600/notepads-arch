@@ -29,8 +29,9 @@ QtObject {
         property string customAccent: "#0078d4"
         property bool showStatusBar: true
         property bool sessionSnapshot: true
-        // Extra space between words, in pixels at 100% zoom.
-        property real wordSpacing: 0
+        // The space between words, as a share of the font's own space.
+        property int wordSpacingPercent: 100
+        property bool lineNumbers: true
         property bool proportionalRtl: true
         // The desktop-wide key that opens Notepads, and the one last written
         // to Hyprland; they differ until it has been applied.

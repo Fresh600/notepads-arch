@@ -1,5 +1,5 @@
 pkgname=notepads
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc='A clean, translucent, tabbed text editor for Omarchy'
 arch=('x86_64' 'aarch64')

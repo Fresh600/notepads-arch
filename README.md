@@ -17,10 +17,13 @@ and follows your Omarchy theme, accent, rounding, and language.
 - Markdown live preview side by side (Alt+P)
 - Hebrew reads naturally: every paragraph gets its own direction, and Hebrew
   letters use a bundled proportional face (a subset of Noto Sans Hebrew)
-  while code and English keep your monospace font
-- Adjustable word spacing
-- A global shortcut that opens Notepads or brings it forward, Super+Alt+N by
-  default, changeable in Settings > Advanced
+  while code and English keep your monospace font. Documents with Hebrew
+  always wrap, since right-to-left lines align to the text's right edge
+- Line numbers, on the side each line starts from: English on the left,
+  Hebrew on the right
+- Word spacing from 20% to 300% of a normal space
+- A global shortcut that opens a new window, tiled beside the others like a
+  terminal, Super+Alt+N by default, changeable in Settings > Advanced
 - Word wrap, line highlight, font, tab width, and tint opacity in settings
 - Saves atomically: writes beside the file, then renames over it
 - Open and save dialogs through the XDG desktop portal

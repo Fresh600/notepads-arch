@@ -16,6 +16,7 @@
 #include "backend.h"
 #include "globalshortcut.h"
 #include "iconprovider.h"
+#include "linenumbergutter.h"
 #include "portalfilepicker.h"
 #include "theme.h"
 #include "translator.h"
@@ -28,7 +29,7 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     app.setApplicationName("notepads");
     app.setOrganizationName("notepads");
-    app.setApplicationVersion("0.2.0");
+    app.setApplicationVersion("0.3.0");
 
     // Matches the window to notepads.desktop, so the compositor (Wayland
     // app_id) and the launcher pick up the installed icon.
@@ -64,6 +65,8 @@ int main(int argc, char *argv[]) {
     Backend backend(&picker);
     backend.setStartupFiles(files);
     GlobalShortcut shortcut;
+
+    qmlRegisterType<LineNumberGutter>("Notepads", 1, 0, "LineNumberGutter");
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("icon", new IconProvider);

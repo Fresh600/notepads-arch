@@ -358,8 +358,13 @@ ApplicationWindow {
     // whenever the setting and what Hyprland has drifted apart.
     function applyGlobalShortcut() {
         const wanted = Style.prefs.globalShortcut
-        if (wanted === Style.prefs.appliedShortcut)
+        if (wanted === Style.prefs.appliedShortcut) {
+            // Bring a binding written by an older version up to date.
+            const error = wanted ? globalShortcut.refresh(wanted) : ""
+            if (error)
+                showMessage(error)
             return
+        }
         const taken = wanted ? globalShortcut.conflict(wanted) : ""
         if (taken) {
             showMessage(qsTr("%1 is already used by \"%2\", so Notepads didn't take it. Pick a key in Settings > Advanced.")

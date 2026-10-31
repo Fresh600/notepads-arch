@@ -10,6 +10,7 @@ HEADERS += \
     src/globalshortcut.h \
     src/paragraphdirection.h \
     src/iconprovider.h \
+    src/linenumbergutter.h \
     src/portalfilepicker.h \
     src/textcodec.h \
     src/theme.h \
@@ -21,6 +22,7 @@ SOURCES += \
     src/globalshortcut.cpp \
     src/paragraphdirection.cpp \
     src/iconprovider.cpp \
+    src/linenumbergutter.cpp \
     src/portalfilepicker.cpp \
     src/textcodec.cpp \
     src/theme.cpp \

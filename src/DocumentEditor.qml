@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
+import Notepads 1.0
 import "."
 
 // One tab's document: the text, the file it belongs to, and how that file
@@ -23,6 +24,11 @@ Item {
     readonly property bool markdown: /\.(md|markdown|mdown|mkd|mkdn)$/i.test(filePath)
     readonly property bool hasSelection: textArea.selectionEnd > textArea.selectionStart
     readonly property int selectedCount: textArea.selectionEnd - textArea.selectionStart
+    // Right-to-left paragraphs align to the text's right edge, which
+    // without wrapping is the end of the longest line, often far off
+    // screen. So a document with Hebrew in it always wraps.
+    readonly property bool hasRightToLeft: rightGutter.hasLines
+    readonly property bool wraps: Style.prefs.wrapWord || hasRightToLeft
     property int line: 1
     property int column: 1
 
@@ -142,34 +148,56 @@ Item {
 
     onPreviewVisibleChanged: if (previewVisible) preview.text = textArea.text
 
+    component Gutter: LineNumberGutter {
+        Layout.fillHeight: true
+        Layout.preferredWidth: visible ? neededWidth : 0
+        visible: Style.prefs.lineNumbers && hasLines
+        document: textArea.textDocument
+        contentY: scroller.contentItem.contentY
+        textTop: textArea.topPadding
+        currentLine: editor.line
+        color: Style.faint
+        currentColor: Style.muted
+        font: backend.gutterFont(Style.prefs.fontFamily, Style.prefs.fontSize * editor.zoom / 100)
+        clip: true
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: 0
+
+        Gutter {
+            rightSide: false
+        }
 
         ScrollView {
             id: scroller
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredWidth: 1
-            ScrollBar.horizontal.policy: Style.prefs.wrapWord ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
+            ScrollBar.horizontal.policy: editor.wraps ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
+            // A TextArea's implicit width is its unwrapped width, which the
+            // ScrollView would otherwise give it, wrapping off screen.
+            contentWidth: editor.wraps ? availableWidth : Math.max(availableWidth, textArea.implicitWidth)
 
             TextArea {
                 id: textArea
 
                 textFormat: TextEdit.PlainText
-                wrapMode: Style.prefs.wrapWord ? TextEdit.Wrap : TextEdit.NoWrap
+                wrapMode: editor.wraps ? TextEdit.Wrap : TextEdit.NoWrap
                 // Hebrew and Arabic fonts first: they only cover their own
                 // script, so everything else falls through to the editor font.
                 font: backend.editorFont(Style.editorFamilies, Style.prefs.fontSize * editor.zoom / 100,
-                                         Style.prefs.wordSpacing * editor.zoom / 100)
+                                         Style.prefs.wordSpacingPercent)
                 color: Style.text
                 selectionColor: Style.accent
                 selectedTextColor: Style.accentText
                 placeholderText: ""
                 persistentSelection: true
                 selectByMouse: true
-                leftPadding: 12
-                rightPadding: 12
+                // Line numbers bring their own margin.
+                leftPadding: Style.prefs.lineNumbers ? 4 : 12
+                rightPadding: Style.prefs.lineNumbers ? 4 : 12
                 topPadding: 8
                 bottomPadding: 8
                 // Material insets the background for its floating label;
@@ -212,6 +240,11 @@ Item {
                     onWheel: event => editor.zoomRequested(event.angleDelta.y > 0 ? 10 : -10)
                 }
             }
+        }
+
+        Gutter {
+            id: rightGutter
+            rightSide: true
         }
 
         Rectangle {

@@ -32,6 +32,7 @@
         <file alias="icons/folder.svg">icons/folder.svg</file>
         <file alias="icons/info.svg">icons/info.svg</file>
         <file alias="icons/keyboard.svg">icons/keyboard.svg</file>
+        <file alias="icons/minus.svg">icons/minus.svg</file>
         <file alias="icons/menu.svg">icons/menu.svg</file>
         <file alias="icons/more.svg">icons/more.svg</file>
         <file alias="icons/open.svg">icons/open.svg</file>

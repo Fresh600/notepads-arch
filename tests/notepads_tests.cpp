@@ -1,5 +1,6 @@
 #include <QDir>
 #include <QFile>
+#include <QFontMetricsF>
 #include <QTemporaryDir>
 #include <QTextBlock>
 #include <QTextDocument>
@@ -8,6 +9,7 @@
 #include "backend.h"
 #include "filepicker.h"
 #include "globalshortcut.h"
+#include "linenumbergutter.h"
 #include "paragraphdirection.h"
 #include "textcodec.h"
 #include "theme.h"
@@ -266,7 +268,8 @@ private slots:
 
         QFile own(dir.filePath("notepads.lua"));
         QVERIFY(own.open(QIODevice::ReadOnly));
-        QVERIFY(own.readAll().contains("o.bind(\"SUPER + ALT + N\", \"Notepads\", { launch = \"notepads\", focus = \"^notepads$\" })"));
+        // A new window each time, like the terminal, not a jump to an open one.
+        QVERIFY(own.readAll().contains("o.bind(\"SUPER + ALT + N\", \"Notepads\", { launch = \"notepads\" })"));
         own.close();
 
         // The require is added once, after a backup, and the rest is kept.
@@ -282,6 +285,49 @@ private slots:
         QVERIFY(shortcut.apply("").isEmpty());
         QVERIFY(own.open(QIODevice::ReadOnly));
         QVERIFY(!own.readAll().contains("o.bind"));
+    }
+
+    void refreshUpdatesAnOlderBinding()
+    {
+        QTemporaryDir dir;
+        write(dir.filePath("hyprland.lua"), "pcall(require, \"hypr.notepads\")\n");
+        write(dir.filePath("notepads.lua"), "o.bind(\"SUPER + ALT + N\", \"Notepads\", { launch = \"notepads\", focus = \"^notepads$\" })\n");
+        GlobalShortcut shortcut(dir.path(), "/usr/bin/true");
+        QVERIFY(shortcut.refresh("SUPER + ALT + N").isEmpty());
+        QFile own(dir.filePath("notepads.lua"));
+        QVERIFY(own.open(QIODevice::ReadOnly));
+        QVERIFY(!own.readAll().contains("focus"));
+        // Nothing to do when Notepads never wrote a binding.
+        QTemporaryDir empty;
+        GlobalShortcut none(empty.path(), "/usr/bin/true");
+        QVERIFY(none.refresh("SUPER + ALT + N").isEmpty());
+        QVERIFY(!QFile::exists(empty.filePath("notepads.lua")));
+    }
+
+    void gutterNumbersEachSide()
+    {
+        QTextDocument document;
+        document.setPlainText(QString::fromUtf8("hello\nשלום"));
+        ParagraphDirection::updateAll(&document);
+        QVERIFY(!LineNumberGutter::isRightToLeft(document.findBlockByNumber(0)));
+        QVERIFY(LineNumberGutter::isRightToLeft(document.findBlockByNumber(1)));
+
+        QFont font("monospace");
+        // Three digits' room up to line 999, then it grows.
+        QCOMPARE(LineNumberGutter::widthFor(5, font), LineNumberGutter::widthFor(999, font));
+        QVERIFY(LineNumberGutter::widthFor(1000, font) > LineNumberGutter::widthFor(999, font));
+    }
+
+    void wordSpacingIsAShareOfASpace()
+    {
+        Backend backend(nullptr, QDir::tempPath());
+        const QFont normal = backend.editorFont({"monospace"}, 12, 100);
+        const QFont narrow = backend.editorFont({"monospace"}, 12, 50);
+        const QFont wide = backend.editorFont({"monospace"}, 12, 200);
+        const qreal space = QFontMetricsF(normal).horizontalAdvance(QLatin1Char(' '));
+        QCOMPARE(normal.wordSpacing(), 0.0);
+        QVERIFY(qAbs(narrow.wordSpacing() + space / 2) < 0.6);
+        QVERIFY(qAbs(wide.wordSpacing() - space) < 0.6);
     }
 
     void shortcutNeedsHyprlandConfigAndAModifier()
