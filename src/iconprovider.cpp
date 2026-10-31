@@ -13,7 +13,9 @@ QImage IconProvider::requestImage(const QString &id, QSize *size, const QSize &r
     if (!color.isValid())
         color = Qt::white;
 
-    const QSize target = requestedSize.isValid() && !requestedSize.isEmpty() ? requestedSize : QSize(24, 24);
+    // Icons are small; a runaway request must not allocate a huge image.
+    const QSize target = requestedSize.isValid() && !requestedSize.isEmpty()
+                             ? requestedSize.boundedTo(QSize(256, 256)) : QSize(24, 24);
     if (size)
         *size = target;
 
