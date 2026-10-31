@@ -350,6 +350,7 @@ private slots:
         Theme theme(dir.path());
         QCOMPARE(theme.accent(), QString("#FFD60A"));
         QCOMPARE(theme.mode(), QString("dark"));
+        QVERIFY(theme.selection().isEmpty());
     }
 
     void themeReadsPalette()
@@ -366,6 +367,30 @@ private slots:
 
         write(dir.path() + "/theme/colors.toml", "background = \"#fafafa\"\nmode = \"dark\"\n");
         QTRY_COMPARE(theme.mode(), QString("dark"));
+    }
+
+    void themeReadsRolePalette()
+    {
+        QTemporaryDir dir;
+        QDir(dir.path()).mkpath("theme");
+        write(dir.path() + "/theme/colors.toml",
+              "selection = \"#45475a\"\nmuted = \"#585b70\"\n"
+              "dark_background = \"#161622\"\n"
+              "lighter_background = \"#313244\"\nred = \"#f38ba8\"\n");
+        Theme theme(dir.path());
+        QCOMPARE(theme.selection(), QString("#45475a"));
+        QCOMPARE(theme.muted(), QString("#585b70"));
+        QCOMPARE(theme.darkBackground(), QString("#161622"));
+        QCOMPARE(theme.lighterBackground(), QString("#313244"));
+        QCOMPARE(theme.red(), QString("#f38ba8"));
+
+        // A theme without the role keys leaves them empty, so the look
+        // falls back to its own mix.
+        write(dir.path() + "/theme/colors.toml", "background = \"#1e1e2e\"\n");
+        QTRY_COMPARE(theme.selection(), QString());
+        QVERIFY(theme.muted().isEmpty());
+        QVERIFY(theme.lighterBackground().isEmpty());
+        QVERIFY(theme.red().isEmpty());
     }
 
     void themeFollowsHyprlandRounding()

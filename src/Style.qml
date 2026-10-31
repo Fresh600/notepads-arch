@@ -23,7 +23,7 @@ QtObject {
         property string searchEngine: "google"
         // "system" follows Omarchy's light or dark theme.
         property string themeMode: "system"
-        property bool omarchyColors: false
+        property bool omarchyColors: true
         property real tintOpacity: 0.8
         property bool omarchyAccent: true
         property string customAccent: "#0078d4"
@@ -53,18 +53,23 @@ QtObject {
     readonly property color activeTab: withAlpha(mix(base, text, dark ? 0.07 : 0.0), dark ? opacity : 1)
     readonly property color tabHover: withAlpha(mix(base, text, 0.035), opacity)
     readonly property color strip: withAlpha(dark ? base : mix(base, "#000000", 0.05), opacity)
-    readonly property color status: withAlpha(mix(base, "#000000", dark ? 0.18 : 0.04), opacity)
-    readonly property color panel: withAlpha(mix(base, text, dark ? 0.06 : 0.0), 0.985)
-    readonly property color menu: withAlpha(mix(base, text, dark ? 0.08 : 0.02), 0.99)
-    readonly property color field: withAlpha(mix(base, text, dark ? 0.1 : 0.0), 1)
+    readonly property color status: withAlpha(themed(theme.darkBackground, mix(base, "#000000", dark ? 0.18 : 0.04)), opacity)
+    readonly property color panel: withAlpha(themed(theme.lighterBackground, mix(base, text, dark ? 0.06 : 0.0)), 0.985)
+    readonly property color menu: withAlpha(themed(theme.lighterBackground, mix(base, text, dark ? 0.08 : 0.02)), 0.99)
+    // A step above the panel it sits on, so a field still reads as one.
+    readonly property color field: themed(theme.lighterBackground, "") ? mix(theme.lighterBackground, text, 0.04)
+                                                                      : mix(base, text, dark ? 0.1 : 0.0)
 
     readonly property color muted: withAlpha(text, 0.64)
-    readonly property color faint: withAlpha(text, 0.36)
-    readonly property color border: withAlpha(text, dark ? 0.1 : 0.14)
+    readonly property color faint: themed(theme.muted, withAlpha(text, 0.36))
+    readonly property color border: themed(theme.muted, withAlpha(text, dark ? 0.1 : 0.14))
     readonly property color hover: withAlpha(text, 0.08)
     readonly property color pressed: withAlpha(text, 0.13)
     readonly property color lineHighlight: withAlpha(text, dark ? 0.05 : 0.06)
-    readonly property color danger: dark ? "#ff6b78" : "#c42b1c"
+    readonly property color danger: themed(theme.red, dark ? "#ff6b78" : "#c42b1c")
+    // Selected text: the theme's selection under plain text, else the accent.
+    readonly property color selection: themed(theme.selection, accent)
+    readonly property color selectionText: themed(theme.selection, "") ? text : accentText
 
     readonly property var rtlFamilies: backend.rightToLeftFamilies()
     readonly property var editorFamilies: prefs.proportionalRtl ? rtlFamilies.concat([prefs.fontFamily]) : [prefs.fontFamily]
@@ -72,8 +77,16 @@ QtObject {
     readonly property int radius: theme.radius
     readonly property int smallRadius: Math.min(4, theme.radius)
 
+    // The theme's own color for a role, when theme colors are on and the
+    // theme has one; otherwise the fallback.
+    function themed(value, fallback) {
+        return prefs.omarchyColors && value ? value : fallback
+    }
+
+    // Takes a color or a "#rrggbb" string, as the theme's roles are.
     function withAlpha(c, a) {
-        return Qt.rgba(c.r, c.g, c.b, a)
+        const x = Qt.color(c)
+        return Qt.rgba(x.r, x.g, x.b, a)
     }
 
     function mix(a, b, t) {

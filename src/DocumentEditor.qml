@@ -190,8 +190,8 @@ Item {
                 font: backend.editorFont(Style.editorFamilies, Style.prefs.fontSize * editor.zoom / 100,
                                          Style.prefs.wordSpacingPercent)
                 color: Style.text
-                selectionColor: Style.accent
-                selectedTextColor: Style.accentText
+                selectionColor: Style.selection
+                selectedTextColor: Style.selectionText
                 placeholderText: ""
                 persistentSelection: true
                 selectByMouse: true
@@ -261,8 +261,8 @@ Item {
                 textFormat: TextEdit.MarkdownText
                 wrapMode: TextEdit.Wrap
                 color: Style.text
-                selectionColor: Style.accent
-                selectedTextColor: Style.accentText
+                selectionColor: Style.selection
+                selectedTextColor: Style.selectionText
                 font.pixelSize: 14
                 padding: 20
                 background: null
