@@ -7,7 +7,7 @@ TEMPLATE = app
 HEADERS += \
     src/backend.h \
     src/filepicker.h \
-    src/globalshortcut.h \
+    src/globalshortcut.h src/wheelzoom.h \
     src/paragraphdirection.h \
     src/iconprovider.h \
     src/linenumbergutter.h \
@@ -19,7 +19,7 @@ HEADERS += \
 SOURCES += \
     src/main.cpp \
     src/backend.cpp \
-    src/globalshortcut.cpp \
+    src/globalshortcut.cpp src/wheelzoom.cpp \
     src/paragraphdirection.cpp \
     src/iconprovider.cpp \
     src/linenumbergutter.cpp \

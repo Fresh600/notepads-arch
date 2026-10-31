@@ -14,6 +14,11 @@
 #include "textcodec.h"
 #include "theme.h"
 #include "translator.h"
+#include "wheelzoom.h"
+
+#include <QSignalSpy>
+#include <QWheelEvent>
+#include <QWindow>
 
 class FakePicker : public FilePicker {
 public:
@@ -404,6 +409,40 @@ private slots:
                  QString("%n tab has unsaved changes."));
         QCOMPARE(translator.translate("Main", "%n tab(s) have unsaved changes.", nullptr, 3),
                  QString("%n tabs have unsaved changes."));
+    }
+
+    void wheelZoomCountsNotches()
+    {
+        WheelZoom zoom;
+        QCOMPARE(zoom.add(120), 1);
+        QCOMPARE(zoom.add(-240), -2);
+        // A touchpad's small steps add up to one notch.
+        for (int i = 0; i < 7; ++i)
+            QCOMPARE(zoom.add(15), 0);
+        QCOMPARE(zoom.add(15), 1);
+        // Reversing drops what was left over in the other direction.
+        QCOMPARE(zoom.add(100), 0);
+        QCOMPARE(zoom.add(-120), -1);
+    }
+
+    void wheelZoomTakesCtrlWheelOnly()
+    {
+        WheelZoom zoom;
+        qApp->installEventFilter(&zoom);
+        QSignalSpy spy(&zoom, &WheelZoom::zoomBy);
+        QWindow window;
+        auto send = [&](Qt::KeyboardModifiers modifiers, int dy) {
+            QWheelEvent event(QPointF(5, 5), QPointF(5, 5), QPoint(), QPoint(0, dy), Qt::NoButton, modifiers,
+                              Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(&window, &event);
+        };
+        send(Qt::ControlModifier, 120);
+        send(Qt::ControlModifier, -120);
+        send(Qt::NoModifier, 120);
+        QCOMPARE(spy.count(), 2);
+        QCOMPARE(spy.at(0).at(0).toInt(), 10);
+        QCOMPARE(spy.at(1).at(0).toInt(), -10);
+        qApp->removeEventFilter(&zoom);
     }
 
 private:

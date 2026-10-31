@@ -297,6 +297,14 @@ ApplicationWindow {
 
     // Everything else
 
+    Connections {
+        target: wheelZoom
+        function onZoomBy(step) {
+            if (!win.modalOpen)
+                win.setZoom(win.zoom + step)
+        }
+    }
+
     function setZoom(value) {
         zoom = Math.max(10, Math.min(500, value))
     }

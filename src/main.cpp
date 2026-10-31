@@ -20,6 +20,7 @@
 #include "portalfilepicker.h"
 #include "theme.h"
 #include "translator.h"
+#include "wheelzoom.h"
 
 int main(int argc, char *argv[]) {
     // The window paints its own translucent background so Hyprland's blur
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     app.setApplicationName("notepads");
     app.setOrganizationName("notepads");
-    app.setApplicationVersion("0.3.1");
+    app.setApplicationVersion("0.3.2");
 
     // Matches the window to notepads.desktop, so the compositor (Wayland
     // app_id) and the launcher pick up the installed icon.
@@ -74,6 +75,9 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty("translator", &translator);
     engine.rootContext()->setContextProperty("theme", &theme);
     engine.rootContext()->setContextProperty("backend", &backend);
+    WheelZoom wheelZoom;
+    app.installEventFilter(&wheelZoom);
+    engine.rootContext()->setContextProperty("wheelZoom", &wheelZoom);
     engine.rootContext()->setContextProperty("globalShortcut", &shortcut);
     engine.rootContext()->setContextProperty("appVersion", app.applicationVersion());
     engine.load(QUrl("qrc:/Main.qml"));
