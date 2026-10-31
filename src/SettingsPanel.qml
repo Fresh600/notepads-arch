@@ -106,10 +106,14 @@ Popup {
         NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100 }
     }
 
-    component Heading: Text {
-        color: Style.text
-        font.pixelSize: 20
-        Layout.topMargin: 18
+    // A group of settings: a small label over its rows.
+    component Section: Text {
+        color: Style.muted
+        font.pixelSize: 12
+        font.weight: Font.DemiBold
+        Layout.topMargin: 28
+        Layout.bottomMargin: 4
+        Layout.leftMargin: 8
         Layout.fillWidth: true
         wrapMode: Text.Wrap
     }
@@ -117,25 +121,97 @@ Popup {
     component Note: Text {
         color: Style.muted
         font.pixelSize: 12
-        font.italic: true
+        Layout.leftMargin: 8
+        Layout.rightMargin: 8
         Layout.fillWidth: true
         wrapMode: Text.Wrap
     }
 
-    component Choice: RadioButton {
+    // A setting's name on the left and its control on the right; the
+    // control is the row's child.
+    component SettingRow: RowLayout {
+        property alias label: rowLabel.text
         Layout.fillWidth: true
-        Material.accent: Style.accent
-        Material.foreground: Style.text
-        font.pixelSize: 13
-        topPadding: 2
-        bottomPadding: 2
+        Layout.leftMargin: 8
+        Layout.rightMargin: 8
+        Layout.minimumHeight: 44
+        spacing: 12
+        Text {
+            id: rowLabel
+            Layout.fillWidth: true
+            color: Style.text
+            font.pixelSize: 13
+            wrapMode: Text.Wrap
+        }
     }
 
-    component Toggle: Switch {
-        Layout.fillWidth: true
+    component Combo: ComboBox {
+        Layout.preferredWidth: 160
+        implicitHeight: 40
+        font.pixelSize: 13
         Material.accent: Style.accent
         Material.foreground: Style.text
+    }
+
+    // A whole row that flips a setting: the name and an optional note on
+    // the left, a small switch on the right.
+    component Toggle: Switch {
+        id: toggle
+        property string note: ""
+        Layout.fillWidth: true
+        implicitHeight: Math.max(44, implicitContentHeight + topPadding + bottomPadding)
+        leftPadding: 8
+        rightPadding: 8 + indicator.width + 12
+        topPadding: 8
+        bottomPadding: 8
         font.pixelSize: 13
+
+        background: Rectangle {
+            radius: Style.smallRadius
+            color: toggle.pressed ? Style.pressed : toggle.hovered ? Style.hover : "transparent"
+            border.width: toggle.visualFocus ? 1 : 0
+            border.color: Style.accent
+        }
+
+        indicator: Rectangle {
+            x: toggle.width - width - 8
+            y: (toggle.height - height) / 2
+            implicitWidth: 32
+            implicitHeight: 18
+            radius: height / 2
+            color: toggle.checked ? Style.accent : "transparent"
+            border.width: toggle.checked ? 0 : 1
+            border.color: Style.muted
+
+            Rectangle {
+                x: toggle.checked ? parent.width - width - 4 : 4
+                y: (parent.height - height) / 2
+                width: 10
+                height: 10
+                radius: 5
+                color: toggle.checked ? Style.accentText : Style.muted
+                Behavior on x { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+            }
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 2
+            Text {
+                Layout.fillWidth: true
+                text: toggle.text
+                color: Style.text
+                font: toggle.font
+                wrapMode: Text.Wrap
+            }
+            Text {
+                Layout.fillWidth: true
+                visible: toggle.note !== ""
+                text: toggle.note
+                color: Style.muted
+                font.pixelSize: 12
+                wrapMode: Text.Wrap
+            }
+        }
     }
 
     RowLayout {
@@ -195,74 +271,110 @@ Popup {
                     Layout.topMargin: 14
                     text: panel.pages[panel.page].title
                     color: Style.text
-                    font.pixelSize: 28
-                    font.weight: Font.Light
+                    font.pixelSize: 20
+                    font.weight: Font.DemiBold
                 }
 
                 // Text & Editor
                 ColumnLayout {
                     visible: panel.page === 0
                     Layout.fillWidth: true
-                    spacing: 4
+                    spacing: 8
 
-                    Heading { text: qsTr("Text Wrapping") }
+                    Section { text: qsTr("Editor") }
                     Toggle {
-                        text: qsTr("Wrap word")
+                        text: qsTr("Wrap words")
+                        note: qsTr("Documents with Hebrew always wrap, so right-to-left lines stay in view.")
                         checked: Style.prefs.wrapWord
                         onToggled: Style.prefs.wrapWord = checked
                     }
-
-                    Note { text: qsTr("Documents with Hebrew always wrap, so right-to-left lines stay in view.") }
-
-                    Heading { text: qsTr("Line Numbers") }
                     Toggle {
                         text: qsTr("Show line numbers")
+                        note: qsTr("Hebrew lines are numbered on the right.")
                         checked: Style.prefs.lineNumbers
                         onToggled: Style.prefs.lineNumbers = checked
                     }
-                    Note { text: qsTr("Hebrew lines are numbered on the right.") }
-
-                    Heading { text: qsTr("Line Highlighter") }
                     Toggle {
                         text: qsTr("Highlight the current line")
                         checked: Style.prefs.highlightLine
                         onToggled: Style.prefs.highlightLine = checked
                     }
+                    SettingRow {
+                        label: qsTr("Indent with")
+                        Combo {
+                            textRole: "label"
+                            valueRole: "value"
+                            model: [
+                                { label: qsTr("Tab"), value: 0 },
+                                { label: qsTr("2 spaces"), value: 2 },
+                                { label: qsTr("4 spaces"), value: 4 },
+                                { label: qsTr("8 spaces"), value: 8 }
+                            ]
+                            currentIndex: Math.max(0, indexOfValue(Style.prefs.tabSize))
+                            onActivated: Style.prefs.tabSize = currentValue
+                        }
+                    }
+                    SettingRow {
+                        label: qsTr("Search the web with")
+                        Combo {
+                            textRole: "name"
+                            valueRole: "key"
+                            model: [
+                                { key: "google", name: "Google" },
+                                { key: "bing", name: "Bing" },
+                                { key: "duckduckgo", name: "DuckDuckGo" }
+                            ]
+                            currentIndex: Math.max(0, indexOfValue(Style.prefs.searchEngine))
+                            onActivated: Style.prefs.searchEngine = currentValue
+                        }
+                    }
 
-                    Heading { text: qsTr("Font") }
+                    Section { text: qsTr("Font") }
+                    SettingRow {
+                        label: qsTr("Family")
+                        Combo {
+                            Layout.preferredWidth: 200
+                            model: ["monospace"].concat(Qt.fontFamilies())
+                            currentIndex: Math.max(0, model.indexOf(Style.prefs.fontFamily))
+                            displayText: currentText === "monospace" ? qsTr("Omarchy monospace") : currentText
+                            onActivated: index => Style.prefs.fontFamily = model[index]
+                        }
+                    }
+                    SettingRow {
+                        label: qsTr("Size")
+                        Combo {
+                            Layout.preferredWidth: 90
+                            model: [8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72]
+                            currentIndex: Math.max(0, model.indexOf(Style.prefs.fontSize))
+                            displayText: Style.prefs.fontSize
+                            onActivated: index => Style.prefs.fontSize = model[index]
+                        }
+                    }
                     Toggle {
                         visible: Style.rtlFamilies.length > 0
                         text: qsTr("Proportional font for Hebrew")
                         checked: Style.prefs.proportionalRtl
                         onToggled: Style.prefs.proportionalRtl = checked
                     }
-                    ComboBox {
-                        id: fontBox
-                        implicitHeight: 40
-                        font.pixelSize: 13
-                        Layout.fillWidth: true
-                        Material.accent: Style.accent
-                        Material.foreground: Style.text
-                        model: ["monospace"].concat(Qt.fontFamilies())
-                        currentIndex: Math.max(0, model.indexOf(Style.prefs.fontFamily))
-                        displayText: currentText === "monospace" ? qsTr("Default monospace (Omarchy font)") : currentText
-                        onActivated: index => Style.prefs.fontFamily = model[index]
+                    SettingRow {
+                        label: qsTr("Word spacing")
+                        Text {
+                            text: Style.prefs.wordSpacingPercent + "%"
+                            color: Style.muted
+                            font.pixelSize: 12
+                        }
+                        IconButton {
+                            implicitWidth: 28
+                            icon: "undo"
+                            tip: qsTr("Reset to the font's own spacing")
+                            enabled: Style.prefs.wordSpacingPercent !== 100
+                            onClicked: Style.prefs.wordSpacingPercent = 100
+                        }
                     }
-                    ComboBox {
-                        Layout.preferredWidth: 110
-                        implicitHeight: 40
-                        font.pixelSize: 13
-                        Material.accent: Style.accent
-                        Material.foreground: Style.text
-                        model: [8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72]
-                        currentIndex: Math.max(0, model.indexOf(Style.prefs.fontSize))
-                        displayText: Style.prefs.fontSize
-                        onActivated: index => Style.prefs.fontSize = model[index]
-                    }
-
-                    Heading { text: qsTr("Word Spacing") }
                     RowLayout {
                         Layout.fillWidth: true
+                        Layout.leftMargin: 8
+                        Layout.rightMargin: 8
                         spacing: 2
                         IconButton {
                             implicitWidth: 28
@@ -288,78 +400,34 @@ Popup {
                             enabled: Style.prefs.wordSpacingPercent < spacingSlider.to
                             onClicked: Style.prefs.wordSpacingPercent = Math.min(spacingSlider.to, Style.prefs.wordSpacingPercent + 1)
                         }
-                        Text {
-                            text: Style.prefs.wordSpacingPercent + "%"
-                            color: Style.muted
-                            font.pixelSize: 12
-                            horizontalAlignment: Text.AlignRight
-                            Layout.preferredWidth: 40
-                        }
-                        IconButton {
-                            implicitWidth: 28
-                            icon: "undo"
-                            tip: qsTr("Reset to the font's own spacing")
-                            enabled: Style.prefs.wordSpacingPercent !== 100
-                            onClicked: Style.prefs.wordSpacingPercent = 100
-                        }
                     }
                     Note { text: qsTr("100% is the font's own space. Below 100% brings words closer. Spaces used for indentation change too.") }
 
-                    Heading { text: qsTr("Tab Indentation") }
-                    ComboBox {
-                        Layout.preferredWidth: 160
-                        implicitHeight: 40
-                        font.pixelSize: 13
-                        Material.accent: Style.accent
-                        Material.foreground: Style.text
-                        textRole: "label"
-                        valueRole: "value"
-                        model: [
-                            { label: qsTr("Tab"), value: 0 },
-                            { label: qsTr("2 spaces"), value: 2 },
-                            { label: qsTr("4 spaces"), value: 4 },
-                            { label: qsTr("8 spaces"), value: 8 }
-                        ]
-                        currentIndex: Math.max(0, indexOfValue(Style.prefs.tabSize))
-                        onActivated: Style.prefs.tabSize = currentValue
-                    }
-
-                    Heading { text: qsTr("Default Line Ending") }
-                    Repeater {
-                        model: ["crlf", "cr", "lf"]
-                        delegate: Choice {
-                            required property string modelData
-                            text: Style.lineEndingName(modelData)
-                            checked: Style.prefs.defaultLineEnding === modelData
-                            onClicked: Style.prefs.defaultLineEnding = modelData
+                    Section { text: qsTr("New documents") }
+                    SettingRow {
+                        label: qsTr("Line ending")
+                        Combo {
+                            model: ["lf", "crlf", "cr"]
+                            currentIndex: Math.max(0, model.indexOf(Style.prefs.defaultLineEnding))
+                            displayText: Style.lineEndingName(currentText)
+                            delegate: MenuItem {
+                                required property string modelData
+                                required property int index
+                                width: ListView.view.width
+                                text: Style.lineEndingName(modelData)
+                                highlighted: ListView.view.currentIndex === index
+                            }
+                            onActivated: index => Style.prefs.defaultLineEnding = model[index]
                         }
                     }
-                    Note { text: qsTr("Only applies to new documents") }
-
-                    Heading { text: qsTr("Default Encoding") }
-                    Repeater {
-                        model: Style.encodings
-                        delegate: Choice {
-                            required property var modelData
-                            text: modelData.name
-                            checked: Style.prefs.defaultEncoding === modelData.key
-                            onClicked: Style.prefs.defaultEncoding = modelData.key
-                        }
-                    }
-                    Note { text: qsTr("Only applies to new documents") }
-
-                    Heading { text: qsTr("Default Search Engine") }
-                    Repeater {
-                        model: [
-                            { key: "google", name: "Google" },
-                            { key: "bing", name: "Bing" },
-                            { key: "duckduckgo", name: "DuckDuckGo" }
-                        ]
-                        delegate: Choice {
-                            required property var modelData
-                            text: modelData.name
-                            checked: Style.prefs.searchEngine === modelData.key
-                            onClicked: Style.prefs.searchEngine = modelData.key
+                    SettingRow {
+                        label: qsTr("Encoding")
+                        Combo {
+                            textRole: "name"
+                            valueRole: "key"
+                            model: Style.encodings
+                            currentIndex: Math.max(0, indexOfValue(Style.prefs.defaultEncoding))
+                            onActivated: Style.prefs.defaultEncoding = currentValue
                         }
                     }
                     Item { implicitHeight: 16 }
@@ -369,20 +437,21 @@ Popup {
                 ColumnLayout {
                     visible: panel.page === 1
                     Layout.fillWidth: true
-                    spacing: 4
+                    spacing: 8
 
-                    Heading { text: qsTr("Theme Mode") }
-                    Repeater {
-                        model: [
-                            { key: "light", name: qsTr("Light") },
-                            { key: "dark", name: qsTr("Dark") },
-                            { key: "system", name: qsTr("Use Omarchy setting") }
-                        ]
-                        delegate: Choice {
-                            required property var modelData
-                            text: modelData.name
-                            checked: Style.prefs.themeMode === modelData.key
-                            onClicked: Style.prefs.themeMode = modelData.key
+                    Section { text: qsTr("Theme") }
+                    SettingRow {
+                        label: qsTr("Mode")
+                        Combo {
+                            textRole: "name"
+                            valueRole: "key"
+                            model: [
+                                { key: "system", name: qsTr("Follow Omarchy") },
+                                { key: "light", name: qsTr("Light") },
+                                { key: "dark", name: qsTr("Dark") }
+                            ]
+                            currentIndex: Math.max(0, indexOfValue(Style.prefs.themeMode))
+                            onActivated: Style.prefs.themeMode = currentValue
                         }
                     }
                     Toggle {
@@ -391,28 +460,7 @@ Popup {
                         onToggled: Style.prefs.omarchyColors = checked
                     }
 
-                    Heading { text: qsTr("Background Tint Opacity") }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Slider {
-                            Layout.fillWidth: true
-                            Material.accent: Style.accent
-                            from: 0.2
-                            to: 1
-                            stepSize: 0.01
-                            value: Style.prefs.tintOpacity
-                            onMoved: Style.prefs.tintOpacity = value
-                        }
-                        Text {
-                            text: Math.round(Style.prefs.tintOpacity * 100) + "%"
-                            color: Style.muted
-                            font.pixelSize: 12
-                            Layout.preferredWidth: 36
-                        }
-                    }
-                    Note { text: qsTr("Lower values let more of the blurred wallpaper through.") }
-
-                    Heading { text: qsTr("Accent Color") }
+                    Section { text: qsTr("Accent color") }
                     Toggle {
                         text: qsTr("Use Omarchy accent color")
                         checked: Style.prefs.omarchyAccent
@@ -421,14 +469,17 @@ Popup {
                     Flow {
                         visible: !Style.prefs.omarchyAccent
                         Layout.fillWidth: true
+                        Layout.leftMargin: 8
+                        Layout.rightMargin: 8
+                        Layout.topMargin: 4
                         spacing: 6
                         Repeater {
                             model: ["#0078d4", "#0099bc", "#00b294", "#10893e", "#ffb900", "#ca5010",
                                     "#e81123", "#e3008c", "#c239b3", "#8764b8", "#6b69d6", "#767676"]
                             delegate: Rectangle {
                                 required property string modelData
-                                width: 32
-                                height: 32
+                                width: 28
+                                height: 28
                                 radius: Style.smallRadius
                                 color: modelData
                                 border.width: Style.prefs.customAccent === modelData ? 2 : 0
@@ -440,6 +491,28 @@ Popup {
                             }
                         }
                     }
+
+                    Section { text: qsTr("Window") }
+                    SettingRow {
+                        label: qsTr("Background tint")
+                        Text {
+                            text: Math.round(Style.prefs.tintOpacity * 100) + "%"
+                            color: Style.muted
+                            font.pixelSize: 12
+                        }
+                    }
+                    Slider {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 8
+                        Layout.rightMargin: 8
+                        Material.accent: Style.accent
+                        from: 0.2
+                        to: 1
+                        stepSize: 0.01
+                        value: Style.prefs.tintOpacity
+                        onMoved: Style.prefs.tintOpacity = value
+                    }
+                    Note { text: qsTr("Lower values let more of the blurred wallpaper through.") }
                     Item { implicitHeight: 16 }
                 }
 
@@ -447,23 +520,28 @@ Popup {
                 ColumnLayout {
                     visible: panel.page === 2
                     Layout.fillWidth: true
-                    spacing: 4
+                    spacing: 8
 
-                    Heading { text: qsTr("Status Bar") }
+                    Section { text: qsTr("Window") }
                     Toggle {
                         text: qsTr("Show status bar")
                         checked: Style.prefs.showStatusBar
                         onToggled: Style.prefs.showStatusBar = checked
                     }
-
-                    Heading { text: qsTr("Global Shortcut") }
-                    Note {
-                        font.italic: false
-                        text: qsTr("Opens a new Notepads window from anywhere, the way the terminal does.")
+                    Toggle {
+                        text: qsTr("Restore tabs and unsaved changes")
+                        note: qsTr("When on, closing Notepads keeps unsaved work for next time instead of asking.")
+                        checked: Style.prefs.sessionSnapshot
+                        onToggled: Style.prefs.sessionSnapshot = checked
                     }
+
+                    Section { text: qsTr("Global shortcut") }
+                    Note { text: qsTr("Opens a new Notepads window from anywhere, the way the terminal does.") }
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.topMargin: 4
+                        Layout.leftMargin: 8
+                        Layout.rightMargin: 8
+                        Layout.topMargin: 6
                         spacing: 8
 
                         Rectangle {
@@ -506,23 +584,12 @@ Popup {
                             onClicked: panel.setShortcut("")
                         }
                     }
-                    Text {
+                    Note {
                         visible: panel.shortcutError !== ""
-                        Layout.fillWidth: true
                         text: panel.shortcutError
                         color: Style.danger
-                        font.pixelSize: 12
-                        wrapMode: Text.Wrap
                     }
                     Note { text: qsTr("Saved as a Hyprland binding in ~/.config/hypr/notepads.lua.") }
-
-                    Heading { text: qsTr("Session Snapshot") }
-                    Toggle {
-                        text: qsTr("Restore tabs and unsaved changes")
-                        checked: Style.prefs.sessionSnapshot
-                        onToggled: Style.prefs.sessionSnapshot = checked
-                    }
-                    Note { text: qsTr("When on, closing Notepads keeps unsaved work for next time instead of asking.") }
                     Item { implicitHeight: 16 }
                 }
 
