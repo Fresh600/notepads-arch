@@ -22,7 +22,7 @@ Popup {
         ["Ctrl+Z / Ctrl+Shift+Z", qsTr("Undo / redo")],
         ["Ctrl+D", qsTr("Duplicate line")],
         ["Ctrl+E", qsTr("Search the web for the selection")],
-        ["Ctrl+= / Ctrl+-", qsTr("Zoom in / out")],
+        ["Ctrl+= / Ctrl+- / Ctrl+wheel", qsTr("Zoom in / out")],
         ["Ctrl+0", qsTr("Reset zoom")],
         ["Alt+Z", qsTr("Toggle word wrap")],
         ["Alt+P", qsTr("Toggle Markdown preview")],

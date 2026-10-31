@@ -35,6 +35,20 @@ Item {
     signal edited()
     signal zoomRequested(int step)
 
+    // Ctrl+wheel zooms 10% per notch. A touchpad sends many small steps
+    // instead of one 120-unit notch, so they add up before zooming.
+    property real wheelPending: 0
+    function wheelZoom(event) {
+        const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.pixelDelta.y
+        wheelPending += delta
+        const notches = Math.trunc(wheelPending / 120)
+        if (notches !== 0) {
+            wheelPending -= notches * 120
+            zoomRequested(notches * 10)
+        }
+        event.accepted = true
+    }
+
     function load(path, forcedEncoding) {
         const result = backend.readFile(path, forcedEncoding || "")
         if (!result.ok)
@@ -160,6 +174,11 @@ Item {
         currentColor: Style.muted
         font: backend.gutterFont(Style.prefs.fontFamily, Style.prefs.fontSize * editor.zoom / 100)
         clip: true
+
+        WheelHandler {
+            acceptedModifiers: Qt.ControlModifier
+            onWheel: event => editor.wheelZoom(event)
+        }
     }
 
     RowLayout {
@@ -237,7 +256,7 @@ Item {
 
                 WheelHandler {
                     acceptedModifiers: Qt.ControlModifier
-                    onWheel: event => editor.zoomRequested(event.angleDelta.y > 0 ? 10 : -10)
+                    onWheel: event => editor.wheelZoom(event)
                 }
             }
         }
