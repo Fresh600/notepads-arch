@@ -1,0 +1,4 @@
+{
+  "%n tab(s) have unsaved changes.": { "one": "%n tab has unsaved changes.", "other": "%n tabs have unsaved changes." },
+  "Replaced %n occurrence(s).": { "one": "Replaced %n occurrence.", "other": "Replaced %n occurrences." }
+}

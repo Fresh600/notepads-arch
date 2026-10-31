@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Notepads
+GenericName=Text Editor
+Comment=A clean, lightweight text editor
+Exec=notepads %F
+Icon=notepads
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;
+Keywords=text;editor;notepad;markdown;
+StartupWMClass=notepads
