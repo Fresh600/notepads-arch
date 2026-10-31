@@ -1,0 +1,34 @@
+# Built by .github/workflows/release.yml for the notepads-arch pacman repo.
+pkgname=notepads-arch
+pkgver=0.3.0
+pkgrel=1
+pkgdesc='A clean, translucent, tabbed text editor for Arch and Omarchy'
+arch=('x86_64')
+url='https://github.com/Fresh600/notepads-arch'
+license=('MIT' 'OFL-1.1')
+depends=('qt6-base' 'qt6-declarative' 'qt6-svg' 'qt6-wayland' 'xdg-desktop-portal')
+makedepends=('gcc' 'make')
+provides=('notepads')
+conflicts=('notepads')
+replaces=('notepads')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgname-$pkgver"
+  ./bin/build
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  ./bin/test
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 build/notepads "$pkgdir/usr/bin/notepads"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 src/fonts/OFL.txt "$pkgdir/usr/share/licenses/$pkgname/OFL-NotepadsHebrew.txt"
+  install -Dm644 pkgbuild/notepads.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/notepads.svg"
+  install -Dm644 pkgbuild/notepads.desktop "$pkgdir/usr/share/applications/notepads.desktop"
+}

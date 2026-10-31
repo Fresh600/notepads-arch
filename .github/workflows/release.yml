@@ -1,0 +1,77 @@
+# On a version tag: build the package in a clean Arch container, then publish
+# it as a pacman repository on GitHub Pages.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install build tools
+        run: |
+          pacman -Syu --noconfirm --needed git qt6-base qt6-declarative qt6-svg qt6-wayland xdg-desktop-portal
+          useradd -m builder
+
+      - uses: actions/checkout@v4
+
+      - name: Build the package
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then version="$(sed -n 's/^pkgver=//p' packaging/PKGBUILD)"; fi
+          mkdir -p /tmp/pkg && cp packaging/PKGBUILD /tmp/pkg/
+          sed -i "s/^pkgver=.*/pkgver=$version/" /tmp/pkg/PKGBUILD
+          chown -R builder /tmp/pkg
+          cd /tmp/pkg && sudo -u builder makepkg --noconfirm
+
+      - name: Make the pacman repository
+        run: |
+          mkdir -p site/x86_64
+          cp /tmp/pkg/*.pkg.tar.zst site/x86_64/
+          cd site/x86_64
+          repo-add notepads-arch.db.tar.gz *.pkg.tar.zst
+          # Pages can't serve symlinks, so the short names become copies.
+          for name in notepads-arch.db notepads-arch.files; do
+            rm -f "$name" && cp "$name.tar.gz" "$name"
+          done
+          cd ../..
+          cp packaging/install.sh site/install.sh
+          cp docs/icon.png site/icon.png
+          printf '<!doctype html><meta charset="utf-8"><title>notepads-arch</title><body style="font-family:sans-serif;max-width:640px;margin:4em auto"><img src="icon.png" width="96"><h1>notepads-arch</h1><p>A pacman repository for <a href="https://github.com/Fresh600/notepads-arch">Notepads</a>.</p><pre>curl -fsSL https://fresh600.github.io/notepads-arch/install.sh | sh</pre>' > site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Attach the package to the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pacman -S --noconfirm --needed github-cli
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          gh release create "$GITHUB_REF_NAME" site/x86_64/*.pkg.tar.zst --title "Notepads ${GITHUB_REF_NAME#v}" --generate-notes \
+            || gh release upload "$GITHUB_REF_NAME" site/x86_64/*.pkg.tar.zst --clobber
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

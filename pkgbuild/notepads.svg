@@ -1,14 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#3a3a3c"/>
-      <stop offset="1" stop-color="#1c1c1e"/>
+      <stop offset="0" stop-color="#363B46"/>
+      <stop offset="1" stop-color="#1D2027"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#ECEDF0"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <path d="M19 12h19l9 9v31a2 2 0 0 1-2 2H19a2 2 0 0 1-2-2V14a2 2 0 0 1 2-2z" fill="#f4f4f5"/>
-  <path d="M38 12v7a2 2 0 0 0 2 2h7z" fill="#c9c9ce"/>
-  <rect x="23" y="27" width="18" height="2.6" rx="1.3" fill="#8e8e93"/>
-  <rect x="23" y="34" width="18" height="2.6" rx="1.3" fill="#8e8e93"/>
-  <rect x="23" y="41" width="11" height="2.6" rx="1.3" fill="#FFD60A"/>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <rect x="8.5" y="8.5" width="239" height="239" rx="55.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.07"/>
+  <!-- A soft shadow under the page -->
+  <path d="M78 58h70l38 38v104a12 12 0 0 1-12 12H78a12 12 0 0 1-12-12V70a12 12 0 0 1 12-12z" fill="#000000" opacity="0.22" transform="translate(0 6)"/>
+  <path d="M78 52h70l38 38v104a12 12 0 0 1-12 12H78a12 12 0 0 1-12-12V64a12 12 0 0 1 12-12z" fill="url(#page)"/>
+  <path d="M148 52v26a12 12 0 0 0 12 12h26z" fill="#D3D6DC"/>
+  <rect x="88" y="112" width="76" height="9" rx="4.5" fill="#B9BDC6"/>
+  <rect x="88" y="134" width="64" height="9" rx="4.5" fill="#B9BDC6"/>
+  <rect x="88" y="156" width="70" height="9" rx="4.5" fill="#B9BDC6"/>
+  <rect x="88" y="178" width="34" height="9" rx="4.5" fill="#F2B544"/>
+  <rect x="128" y="174" width="4" height="17" rx="2" fill="#2B2F38"/>
 </svg>

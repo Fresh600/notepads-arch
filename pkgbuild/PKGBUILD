@@ -1,7 +1,10 @@
-pkgname=notepads
+pkgname=notepads-arch
 pkgver=0.3.0
 pkgrel=1
-pkgdesc='A clean, translucent, tabbed text editor for Omarchy'
+pkgdesc='A clean, translucent, tabbed text editor for Arch and Omarchy'
+provides=('notepads')
+conflicts=('notepads')
+replaces=('notepads')
 arch=('x86_64' 'aarch64')
 license=('MIT')
 depends=('qt6-base' 'qt6-declarative' 'qt6-svg' 'qt6-wayland' 'xdg-desktop-portal')

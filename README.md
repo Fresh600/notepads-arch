@@ -1,4 +1,6 @@
-# Notepads
+<p align="center"><img src="docs/icon.png" width="128" alt=""></p>
+
+<h1 align="center">Notepads</h1>
 
 ![Notepads](docs/screenshot.png)
 
@@ -30,13 +32,32 @@ and follows your Omarchy theme, accent, rounding, and language.
 
 ## Install
 
+On Arch Linux or Omarchy, one command adds the `[notepads-arch]` pacman
+repository and installs the app:
+
 ```sh
-bin/install
+curl -fsSL https://fresh600.github.io/notepads-arch/install.sh | sh
 ```
 
-This builds the package with `makepkg` and installs it, so Notepads appears in
-the app launcher (Super + Space). Open files from a terminal with
+Or add the repository by hand, by appending this to `/etc/pacman.conf`:
+
+```ini
+[notepads-arch]
+SigLevel = Optional TrustAll
+Server = https://fresh600.github.io/notepads-arch/$arch
+```
+
+and then:
+
+```sh
+sudo pacman -Sy notepads-arch
+```
+
+Updates arrive with `sudo pacman -Syu` (or `omarchy update`). Notepads then
+shows up in the app launcher (Super + Space); from a terminal, run
 `notepads file.txt …`.
+
+To build and install from a checkout instead: `bin/install`.
 
 ## Shortcuts
 
@@ -82,3 +103,15 @@ Settings live in `~/.config/notepads/notepads.conf`, and the session snapshot
 in `~/.local/state/notepads/session.json` (readable only by you). When two
 windows are open, the first keeps the session and the other asks before
 discarding unsaved changes.
+
+## Releasing
+
+Bump the version in `src/main.cpp`, `pkgbuild/PKGBUILD`, and
+`packaging/PKGBUILD`, then tag and push:
+
+```sh
+git tag v0.4.0 && git push origin main v0.4.0
+```
+
+The Release workflow builds the package in a clean Arch container, attaches
+it to a GitHub release, and publishes the pacman repository to GitHub Pages.
