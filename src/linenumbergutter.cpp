@@ -179,8 +179,25 @@ void LineNumberGutter::paint(QPainter *painter) {
         painter->setPen(number == m_currentLine ? m_currentColor : m_color);
         // Right-aligned in both gutters: against the text on the left, and
         // against the window's edge on the right, where Hebrew starts.
-        const qreal x = m_rightSide ? width() - outerPadding - metrics.horizontalAdvance(text)
-                                    : width() - innerPadding - metrics.horizontalAdvance(text);
-        painter->drawText(QPointF(x, baseline), text);
+        const auto alignedX = [&](const QString &label) {
+            return m_rightSide ? width() - outerPadding - metrics.horizontalAdvance(label)
+                               : width() - innerPadding - metrics.horizontalAdvance(label);
+        };
+        painter->drawText(QPointF(alignedX(text), baseline), text);
+
+        // A paragraph that wraps keeps its one number; its later rows get a
+        // continuation mark, so a wrapped row isn't mistaken for a new line.
+        if (const QTextLayout *textLayout = block.layout()) {
+            static const QString continuation = QStringLiteral("\u21AA");
+            for (int i = 1; i < textLayout->lineCount(); ++i) {
+                const QTextLine line = textLayout->lineAt(i);
+                const qreal lineBaseline = y + line.y() + line.ascent();
+                if (lineBaseline < 0)
+                    continue;
+                if (lineBaseline - line.ascent() > height())
+                    break;
+                painter->drawText(QPointF(alignedX(continuation), lineBaseline), continuation);
+            }
+        }
     }
 }

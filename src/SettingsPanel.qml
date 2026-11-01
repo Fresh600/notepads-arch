@@ -10,10 +10,13 @@ Popup {
     id: panel
 
     property int page: 0
-    property bool recording: false
+    // Which shortcut is waiting for a key: "global", "correction", or "".
+    property string recordingTarget: ""
+    readonly property bool recording: recordingTarget !== ""
     property string shortcutError: ""
+    property string correctionError: ""
 
-    onClosed: recording = false
+    onClosed: recordingTarget = ""
 
     // Hyprland's names for the keys Qt reports.
     function keyName(event) {
@@ -41,7 +44,7 @@ Popup {
         if (modifierKeys.indexOf(event.key) >= 0)
             return
         if (event.key === Qt.Key_Escape && event.modifiers === Qt.NoModifier) {
-            recording = false
+            recordingTarget = ""
             return
         }
         const key = keyName(event)
@@ -54,8 +57,35 @@ Popup {
             shortcutError = qsTr("Hold at least one of Super, Ctrl, Alt, or Shift, then press a key.")
             return
         }
-        recording = false
-        setShortcut(parts.concat([key]).join(" + "))
+        const target = recordingTarget
+        recordingTarget = ""
+        const combo = parts.concat([key]).join(" + ")
+        if (target === "correction")
+            setCorrectionShortcut(combo)
+        else
+            setShortcut(combo)
+    }
+
+    // Qt's spelling of a combo recorded in Hyprland's: "CTRL + SHIFT + D"
+    // becomes "Ctrl+Shift+D".
+    function qtSequence(combo) {
+        const keys = { SPACE: "Space", RETURN: "Return", TAB: "Tab", BACKSPACE: "Backspace", DELETE: "Del",
+                       INSERT: "Ins", HOME: "Home", END: "End", PAGE_UP: "PgUp", PAGE_DOWN: "PgDown",
+                       LEFT: "Left", RIGHT: "Right", UP: "Up", DOWN: "Down", MINUS: "-", EQUAL: "=",
+                       COMMA: ",", PERIOD: ".", SLASH: "/", SEMICOLON: ";", APOSTROPHE: "'",
+                       BRACKETLEFT: "[", BRACKETRIGHT: "]", BACKSLASH: "\\", GRAVE: "`" }
+        const mods = { SUPER: "Meta", CTRL: "Ctrl", SHIFT: "Shift", ALT: "Alt" }
+        return combo.split("+").map(part => part.trim()).filter(part => part !== "")
+                    .map(part => mods[part] || keys[part] || part).join("+")
+    }
+
+    function setCorrectionShortcut(combo) {
+        correctionError = ""
+        if (combo && combo === Style.prefs.globalShortcut) {
+            correctionError = qsTr("%1 is already the shortcut that opens Notepads.").arg(globalShortcut.displayName(combo))
+            return
+        }
+        Style.prefs.correctionShortcut = combo
     }
 
     function setShortcut(combo) {
@@ -104,6 +134,62 @@ Popup {
     }
     exit: Transition {
         NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100 }
+    }
+
+    component ShortcutField: RowLayout {
+        id: field
+
+        property string target
+        property string value
+        signal cleared
+
+        Layout.fillWidth: true
+        Layout.topMargin: 4
+        spacing: 8
+
+        Rectangle {
+            id: shortcutBox
+            Layout.fillWidth: true
+            implicitHeight: 34
+            radius: Style.smallRadius
+            color: Style.field
+            border.color: panel.recordingTarget === field.target ? Style.accent : Style.border
+            focus: panel.recordingTarget === field.target
+
+            Text {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+                font.pixelSize: 13
+                color: panel.recordingTarget === field.target || !field.value ? Style.muted : Style.text
+                text: panel.recordingTarget === field.target ? qsTr("Press the new shortcut… (Esc cancels)")
+                      : field.value ? globalShortcut.displayName(field.value)
+                      : qsTr("None")
+            }
+
+            Keys.onPressed: event => panel.recordShortcut(event)
+        }
+        FlatButton {
+            text: panel.recordingTarget === field.target ? qsTr("Cancel") : qsTr("Change")
+            onClicked: {
+                panel.shortcutError = ""
+                panel.correctionError = ""
+                if (panel.recordingTarget === field.target) {
+                    panel.recordingTarget = ""
+                } else {
+                    panel.recordingTarget = field.target
+                    shortcutBox.forceActiveFocus()
+                }
+            }
+        }
+        IconButton {
+            implicitWidth: 32
+            icon: "close"
+            tip: qsTr("Remove the shortcut")
+            visible: field.value !== "" && !panel.recording
+            onClicked: field.cleared()
+        }
     }
 
     component Heading: Text {
@@ -480,50 +566,10 @@ Popup {
                         font.italic: false
                         text: qsTr("Opens a new Notepads window from anywhere, the way the terminal does.")
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.topMargin: 4
-                        spacing: 8
-
-                        Rectangle {
-                            id: shortcutBox
-                            Layout.fillWidth: true
-                            implicitHeight: 34
-                            radius: Style.smallRadius
-                            color: Style.field
-                            border.color: panel.recording ? Style.accent : Style.border
-                            focus: panel.recording
-
-                            Text {
-                                anchors.fill: parent
-                                anchors.leftMargin: 10
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                                font.pixelSize: 13
-                                color: panel.recording || !Style.prefs.globalShortcut ? Style.muted : Style.text
-                                text: panel.recording ? qsTr("Press the new shortcut… (Esc cancels)")
-                                      : Style.prefs.globalShortcut ? globalShortcut.displayName(Style.prefs.globalShortcut)
-                                      : qsTr("None")
-                            }
-
-                            Keys.onPressed: event => panel.recordShortcut(event)
-                        }
-                        FlatButton {
-                            text: panel.recording ? qsTr("Cancel") : qsTr("Change")
-                            onClicked: {
-                                panel.shortcutError = ""
-                                panel.recording = !panel.recording
-                                if (panel.recording)
-                                    shortcutBox.forceActiveFocus()
-                            }
-                        }
-                        IconButton {
-                            implicitWidth: 32
-                            icon: "close"
-                            tip: qsTr("Remove the shortcut")
-                            visible: Style.prefs.globalShortcut !== "" && !panel.recording
-                            onClicked: panel.setShortcut("")
-                        }
+                    ShortcutField {
+                        target: "global"
+                        value: Style.prefs.globalShortcut
+                        onCleared: panel.setShortcut("")
                     }
                     Text {
                         visible: panel.shortcutError !== ""
@@ -534,6 +580,25 @@ Popup {
                         wrapMode: Text.Wrap
                     }
                     Note { text: qsTr("Saved as a Hyprland binding in ~/.config/hypr/notepads.lua.") }
+
+                    Heading { text: qsTr("Accept Spelling Suggestion") }
+                    Note {
+                        font.italic: false
+                        text: qsTr("Replaces the misspelled word at the cursor with the dictionary's first suggestion.")
+                    }
+                    ShortcutField {
+                        target: "correction"
+                        value: Style.prefs.correctionShortcut
+                        onCleared: panel.setCorrectionShortcut("")
+                    }
+                    Text {
+                        visible: panel.correctionError !== ""
+                        Layout.fillWidth: true
+                        text: panel.correctionError
+                        color: Style.danger
+                        font.pixelSize: 12
+                        wrapMode: Text.Wrap
+                    }
 
                     Heading { text: qsTr("Session Snapshot") }
                     Toggle {

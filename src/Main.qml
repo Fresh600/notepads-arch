@@ -449,6 +449,12 @@ ApplicationWindow {
     Shortcut { enabled: !win.modalOpen; sequence: "Alt+Z"; context: Qt.ApplicationShortcut; onActivated: Style.prefs.wrapWord = !Style.prefs.wrapWord }
     Shortcut { enabled: !win.modalOpen; sequence: "Alt+P"; context: Qt.ApplicationShortcut; onActivated: win.togglePreview() }
     Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+E"; context: Qt.ApplicationShortcut; onActivated: win.searchWeb() }
+    Shortcut {
+        enabled: !win.modalOpen && Style.prefs.correctionShortcut !== ""
+        sequence: settings.qtSequence(Style.prefs.correctionShortcut)
+        context: Qt.ApplicationShortcut
+        onActivated: if (win.currentEditor) win.currentEditor.acceptCorrection()
+    }
     Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+D"; context: Qt.ApplicationShortcut; onActivated: if (win.currentEditor) win.currentEditor.duplicateLine() }
     Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+,"; context: Qt.ApplicationShortcut; onActivated: settings.opened ? settings.close() : settings.open() }
     Shortcut { enabled: !win.modalOpen; sequence: "F1"; context: Qt.ApplicationShortcut; onActivated: shortcutsOverlay.opened ? shortcutsOverlay.close() : shortcutsOverlay.open() }
@@ -749,7 +755,6 @@ ApplicationWindow {
         AppMenuItem {
             visible: editMenu.correction !== ""
             text: editMenu.correction
-            font.bold: true
             onTriggered: spellChecker.replace(editMenu.area.textDocument, editMenu.misspelled.start,
                                               editMenu.misspelled.end, editMenu.misspelled.word, editMenu.correction)
         }

@@ -124,6 +124,18 @@ Item {
             textArea.insert(textArea.cursorPosition, "\t")
     }
 
+    // Swaps the misspelled word at the cursor (or the selected word) for
+    // the dictionary's first suggestion.
+    function acceptCorrection() {
+        const word = spellChecker.wordAt(textArea.textDocument, textArea.cursorPosition,
+                                         textArea.selectionStart, textArea.selectionEnd)
+        if (word.start < 0 || !word.misspelled)
+            return
+        const correction = spellChecker.bestSuggestion(word.word)
+        if (correction !== "" && spellChecker.replace(textArea.textDocument, word.start, word.end, word.word, correction))
+            textArea.cursorPosition = word.start + correction.length
+    }
+
     function duplicateLine() {
         const text = textArea.text
         const position = textArea.cursorPosition

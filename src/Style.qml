@@ -39,6 +39,9 @@ QtObject {
         // to Hyprland; they differ until it has been applied.
         property string globalShortcut: "SUPER + ALT + N"
         property string appliedShortcut: ""
+        // In-app key that swaps the misspelled word at the cursor for the
+        // dictionary's first suggestion (same notation as globalShortcut).
+        property string correctionShortcut: "CTRL + SHIFT + D"
         property var recentFiles: []
     }
 

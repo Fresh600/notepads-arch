@@ -21,6 +21,7 @@ Popup {
         ["F3 / Shift+F3", qsTr("Next / previous match")],
         ["Ctrl+Z / Ctrl+Shift+Z", qsTr("Undo / redo")],
         ["Ctrl+D", qsTr("Duplicate line")],
+        [Style.prefs.correctionShortcut ? globalShortcut.displayName(Style.prefs.correctionShortcut) : "—", qsTr("Accept the first spelling suggestion")],
         ["Ctrl+E", qsTr("Search the web for the selection")],
         ["Ctrl+= / Ctrl+- / Ctrl+wheel", qsTr("Zoom in / out")],
         ["Ctrl+0", qsTr("Reset zoom")],
