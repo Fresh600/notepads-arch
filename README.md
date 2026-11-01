@@ -4,6 +4,8 @@
 
 ![Notepads](docs/screenshot.png)
 
+![Find bar, line numbers and zoom over the Omarchy wallpaper blur](docs/screenshot-find.png)
+
 A modern, lightweight text editor with a minimalist design, for
 [Omarchy](https://omarchy.org). Its look and feel follow
 [Notepads](https://github.com/0x7c13/Notepads) for Windows by Jackie Liu: a
