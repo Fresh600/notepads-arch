@@ -297,6 +297,12 @@ ApplicationWindow {
 
     // Everything else
 
+    Binding {
+        target: spellChecker
+        property: "underline"
+        value: Style.prefs.spellUnderline
+    }
+
     Connections {
         target: wheelZoom
         function onZoomBy(step) {
@@ -734,6 +740,31 @@ ApplicationWindow {
         id: editMenu
 
         readonly property var area: win.currentEditor ? win.currentEditor.area : null
+        // The misspelled word that was right-clicked, if suggestions are on.
+        readonly property var misspelled: win.currentEditor && Style.prefs.spellSuggestions
+                                          && win.currentEditor.spelling.misspelled ? win.currentEditor.spelling : null
+        // Only the best correction, the one Hunspell ranks first.
+        readonly property string correction: misspelled ? spellChecker.bestSuggestion(misspelled.word) : ""
+
+        AppMenuItem {
+            visible: editMenu.correction !== ""
+            text: editMenu.correction
+            font.bold: true
+            onTriggered: spellChecker.replace(editMenu.area.textDocument, editMenu.misspelled.start,
+                                              editMenu.misspelled.end, editMenu.misspelled.word, editMenu.correction)
+        }
+        AppMenuItem {
+            visible: editMenu.misspelled !== null && editMenu.correction === ""
+            text: qsTr("No suggestions")
+            enabled: false
+        }
+        AppMenuItem {
+            visible: editMenu.misspelled !== null
+            text: qsTr("Add to dictionary")
+            iconName: "add"
+            onTriggered: spellChecker.addWord(editMenu.misspelled.word)
+        }
+        AppMenuSeparator { visible: editMenu.misspelled !== null }
 
         AppMenuItem { text: qsTr("Cut"); iconName: "cut"; shortcut: "Ctrl+X"; enabled: editMenu.area && win.currentEditor.hasSelection; onTriggered: editMenu.area.cut() }
         AppMenuItem { text: qsTr("Copy"); iconName: "copy"; shortcut: "Ctrl+C"; enabled: editMenu.area && win.currentEditor.hasSelection; onTriggered: editMenu.area.copy() }

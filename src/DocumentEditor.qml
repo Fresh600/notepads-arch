@@ -17,6 +17,8 @@ Item {
     property int zoom: 100
     property Menu contextMenu: null
     property bool previewVisible: false
+    // The word under the last right-click: {start, end, word, misspelled}.
+    property var spelling: ({ start: -1 })
 
     readonly property alias area: textArea
     readonly property bool modified: textArea.textDocument.modified
@@ -144,7 +146,10 @@ Item {
         onTriggered: preview.text = textArea.text
     }
 
-    Component.onCompleted: backend.attachDirections(textArea.textDocument)
+    Component.onCompleted: {
+        backend.attachDirections(textArea.textDocument)
+        spellChecker.attach(textArea.textDocument)
+    }
 
     onPreviewVisibleChanged: if (previewVisible) preview.text = textArea.text
 
@@ -208,6 +213,20 @@ Item {
                 rightInset: 0
                 tabStopDistance: metrics.advanceWidth(" ") * (Style.prefs.tabSize > 0 ? Style.prefs.tabSize : 4)
                 ContextMenu.menu: editor.contextMenu
+                // The menu offers corrections for the word that was
+                // right-clicked, or the selected word; nowhere else.
+                // ContextMenu's own position isn't in the text's coordinates,
+                // so the pointer is tracked here; the menu key uses the cursor.
+                ContextMenu.onRequested: editor.spelling = Style.prefs.spellSuggestions
+                    ? spellChecker.wordAt(textArea.textDocument,
+                                          pointer.hovered ? textArea.positionAt(pointer.point.position.x, pointer.point.position.y)
+                                                          : textArea.cursorPosition,
+                                          textArea.selectionStart, textArea.selectionEnd)
+                    : ({ start: -1 })
+
+                HoverHandler {
+                    id: pointer
+                }
                 Material.accent: Style.accent
 
                 background: Item {
@@ -269,5 +288,20 @@ Item {
                 onLinkActivated: link => Qt.openUrlExternally(link)
             }
         }
+    }
+
+    // Over the text, not part of it: the red wave under misspellings.
+    SpellUnderline {
+        x: scroller.x
+        y: scroller.y
+        width: scroller.width
+        height: scroller.height
+        visible: Style.prefs.spellUnderline
+        clip: true
+        document: textArea.textDocument
+        contentX: scroller.contentItem.contentX
+        contentY: scroller.contentItem.contentY
+        textLeft: textArea.leftPadding
+        textTop: textArea.topPadding
     }
 }

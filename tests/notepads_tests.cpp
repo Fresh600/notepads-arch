@@ -14,7 +14,12 @@
 #include "textcodec.h"
 #include "theme.h"
 #include "translator.h"
+#include "spellchecker.h"
+#include "spellunderline.h"
 #include "wheelzoom.h"
+
+#include <QAbstractTextDocumentLayout>
+#include <QTextLayout>
 
 #include <QSignalSpy>
 #include <QWheelEvent>
@@ -443,6 +448,138 @@ private slots:
         QCOMPARE(spy.at(0).at(0).toInt(), 10);
         QCOMPARE(spy.at(1).at(0).toInt(), -10);
         qApp->removeEventFilter(&zoom);
+    }
+
+    // A tiny English dictionary, so the tests don't depend on what's installed.
+    static QString dictionaryIn(const QTemporaryDir &dir)
+    {
+        write(dir.filePath("en_TEST.aff"), "SET UTF-8\nTRY esianrtolcdugmphbyfvkwzxjqESIANRTOLCDUGMPHBYFVKWZXJQ'\n");
+        write(dir.filePath("en_TEST.dic"), "5\nperson\nhello\nworld\ndon't\nthe\n");
+        return dir.path();
+    }
+
+    void spellingChecksWordsOfItsAlphabet()
+    {
+        QTemporaryDir dir;
+        SpellChecker spell({dictionaryIn(dir)}, dir.filePath("user.txt"));
+        QVERIFY(spell.available());
+        QCOMPARE(spell.languages(), QStringList{"en_TEST"});
+        QVERIFY(spell.isCorrect("person"));
+        QVERIFY(spell.isCorrect("Hello"));
+        QVERIFY(!spell.isCorrect("persaon"));
+        QCOMPARE(spell.suggestions("persaon").value(0), QString("person"));
+        QCOMPARE(spell.bestSuggestion("persaon"), QString("person"));
+        QVERIFY(spell.bestSuggestion("zzqxj").isEmpty());
+        // No Hebrew dictionary here, so Hebrew isn't judged at all.
+        QVERIFY(spell.isCorrect(QString::fromUtf8("שלומ")));
+    }
+
+    void spellingSkipsWhatIsNotAWord()
+    {
+        const QString text = "Teh x2 snake_case NASA camelCase iPhone don't https://exampel.com a@exampel.com wrold";
+        QStringList found;
+        for (const auto &[start, length] : SpellChecker::words(text))
+            found << text.mid(start, length);
+        QCOMPARE(found, (QStringList{"Teh", "don't", "wrold"}));
+        found.clear();
+        const QString hebrew = QString::fromUtf8("צה״ל שלום");
+        for (const auto &[start, length] : SpellChecker::words(hebrew))
+            found << hebrew.mid(start, length);
+        QCOMPARE(found, (QStringList{QString::fromUtf8("צה״ל"), QString::fromUtf8("שלום")}));
+    }
+
+    void spellingRemembersAddedWords()
+    {
+        QTemporaryDir dir;
+        {
+            SpellChecker spell({dictionaryIn(dir)}, dir.filePath("sub/user.txt"));
+            QVERIFY(!spell.isCorrect("Omarchy"));
+            spell.addWord("Omarchy");
+            QVERIFY(spell.isCorrect("Omarchy"));
+        }
+        SpellChecker again({dir.path()}, dir.filePath("sub/user.txt"));
+        QVERIFY(again.isCorrect("Omarchy"));
+    }
+
+    void spellingFindsTheClickedOrSelectedWord()
+    {
+        QTemporaryDir dir;
+        SpellChecker spell({dictionaryIn(dir)}, dir.filePath("user.txt"));
+        QTextDocument document;
+        document.setPlainText("hello persaon\nworld");
+        QVariantMap word = spell.wordIn(&document, 8, -1, -1);
+        QCOMPARE(word.value("word").toString(), QString("persaon"));
+        QCOMPARE(word.value("start").toInt(), 6);
+        QCOMPARE(word.value("end").toInt(), 13);
+        QVERIFY(word.value("misspelled").toBool());
+        // Just after the last letter still counts.
+        QCOMPARE(spell.wordIn(&document, 13, -1, -1).value("word").toString(), QString("persaon"));
+        QVERIFY(!spell.wordIn(&document, 2, -1, -1).value("misspelled").toBool());
+        // A selected word wins over the click position.
+        QCOMPARE(spell.wordIn(&document, 0, 6, 13).value("word").toString(), QString("persaon"));
+        QCOMPARE(spell.wordIn(&document, 5, -1, -1).value("word").toString(), QString("hello"));
+    }
+
+    void spellingUnderlinesWithoutEditing()
+    {
+        QTemporaryDir dir;
+        SpellChecker spell({dictionaryIn(dir)}, dir.filePath("user.txt"));
+        QTextDocument document;
+        document.setPlainText("hello persaon");
+        document.setModified(false);
+        spell.attachTo(&document);
+        // The first pass runs once the event loop is free.
+        QCoreApplication::processEvents();
+        auto underlined = [&] {
+            QStringList words;
+            const QTextBlock block = document.firstBlock();
+            for (const auto &[start, length] : SpellChecker::misspelled(block))
+                words << block.text().mid(start, length);
+            return words;
+        };
+        QCOMPARE(underlined(), QStringList{"persaon"});
+        QVERIFY(!document.isModified());
+        QVERIFY(!document.isUndoAvailable());
+        spell.setUnderline(false);
+        QVERIFY(underlined().isEmpty());
+        spell.setUnderline(true);
+        spell.addWord("persaon");
+        QVERIFY(underlined().isEmpty());
+    }
+
+    void spellUnderlineSitsUnderTheWord()
+    {
+        QTemporaryDir dir;
+        SpellChecker spell({dictionaryIn(dir)}, dir.filePath("user.txt"));
+        QTextDocument document;
+        document.setPlainText("hello persaon\nworld");
+        spell.attachTo(&document);
+        QCoreApplication::processEvents();
+        document.documentLayout(); // lay out before measuring
+        const auto lines = SpellUnderline::stretches(&document, 10, 20, 500);
+        QCOMPARE(lines.size(), 1);
+        const QTextLine line = document.firstBlock().layout()->lineAt(0);
+        const qreal left = document.documentLayout()->blockBoundingRect(document.firstBlock()).left() + 10;
+        QCOMPARE(lines[0].x1, left + line.cursorToX(6));
+        QCOMPARE(lines[0].x2, left + line.cursorToX(13));
+        QVERIFY(lines[0].y > 20);
+        // Scrolled out of view: nothing to paint.
+        QVERIFY(SpellUnderline::stretches(&document, 10, -1000, 500).isEmpty());
+    }
+
+    void spellingReplacesAsOneUndoStep()
+    {
+        QTemporaryDir dir;
+        SpellChecker spell({dictionaryIn(dir)}, dir.filePath("user.txt"));
+        QTextDocument document;
+        document.setPlainText("a persaon here");
+        QVERIFY(!spell.replace(nullptr, 2, 9, "persaon", "person"));
+        // Text that changed since the right-click is left alone.
+        QVERIFY(!SpellChecker::replaceIn(&document, 2, 9, "persons", "person"));
+        QVERIFY(SpellChecker::replaceIn(&document, 2, 9, "persaon", "person"));
+        QCOMPARE(document.toPlainText(), QString("a person here"));
+        document.undo();
+        QCOMPARE(document.toPlainText(), QString("a persaon here"));
     }
 
 private:

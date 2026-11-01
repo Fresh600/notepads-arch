@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Install build tools
         run: |
-          pacman -Syu --noconfirm --needed git qt6-base qt6-declarative qt6-svg qt6-wayland xdg-desktop-portal
+          pacman -Syu --noconfirm --needed git qt6-base qt6-declarative qt6-svg qt6-wayland xdg-desktop-portal hunspell hunspell-en_us
           useradd -m builder
 
       - uses: actions/checkout@v4

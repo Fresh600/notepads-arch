@@ -222,6 +222,25 @@ Popup {
                     }
                     Note { text: qsTr("Hebrew lines are numbered on the right.") }
 
+                    Heading { text: qsTr("Spelling") }
+                    Toggle {
+                        text: qsTr("Underline spelling mistakes")
+                        enabled: spellChecker.available
+                        checked: Style.prefs.spellUnderline
+                        onToggled: Style.prefs.spellUnderline = checked
+                    }
+                    Toggle {
+                        text: qsTr("Suggest corrections in the right-click menu")
+                        enabled: spellChecker.available
+                        checked: Style.prefs.spellSuggestions
+                        onToggled: Style.prefs.spellSuggestions = checked
+                    }
+                    Note {
+                        text: spellChecker.available
+                              ? qsTr("Dictionaries: %1. Install more with pacman, for example hunspell-he for Hebrew.").arg(spellChecker.languages().join(", "))
+                              : qsTr("No dictionaries are installed. Install one with pacman, for example hunspell-en_us.")
+                    }
+
                     Heading { text: qsTr("Line Highlighter") }
                     Toggle {
                         text: qsTr("Highlight the current line")

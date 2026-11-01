@@ -3,6 +3,8 @@ import QtQuick.Controls
 import "."
 
 MenuSeparator {
+    // Hidden separators give up their row, like hidden items.
+    height: visible ? implicitHeight : 0
     topPadding: 4
     bottomPadding: 4
     leftPadding: 12

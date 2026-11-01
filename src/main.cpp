@@ -20,6 +20,8 @@
 #include "portalfilepicker.h"
 #include "theme.h"
 #include "translator.h"
+#include "spellchecker.h"
+#include "spellunderline.h"
 #include "wheelzoom.h"
 
 int main(int argc, char *argv[]) {
@@ -30,7 +32,7 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     app.setApplicationName("notepads");
     app.setOrganizationName("notepads");
-    app.setApplicationVersion("0.3.2");
+    app.setApplicationVersion("0.4.0");
 
     // Matches the window to notepads.desktop, so the compositor (Wayland
     // app_id) and the launcher pick up the installed icon.
@@ -66,8 +68,13 @@ int main(int argc, char *argv[]) {
     Backend backend(&picker);
     backend.setStartupFiles(files);
     GlobalShortcut shortcut;
+    // Before the engine, so they outlive the QML that uses them.
+    SpellChecker spellChecker;
+    WheelZoom wheelZoom;
+    app.installEventFilter(&wheelZoom);
 
     qmlRegisterType<LineNumberGutter>("Notepads", 1, 0, "LineNumberGutter");
+    qmlRegisterType<SpellUnderline>("Notepads", 1, 0, "SpellUnderline");
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("icon", new IconProvider);
@@ -75,8 +82,7 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty("translator", &translator);
     engine.rootContext()->setContextProperty("theme", &theme);
     engine.rootContext()->setContextProperty("backend", &backend);
-    WheelZoom wheelZoom;
-    app.installEventFilter(&wheelZoom);
+    engine.rootContext()->setContextProperty("spellChecker", &spellChecker);
     engine.rootContext()->setContextProperty("wheelZoom", &wheelZoom);
     engine.rootContext()->setContextProperty("globalShortcut", &shortcut);
     engine.rootContext()->setContextProperty("appVersion", app.applicationVersion());

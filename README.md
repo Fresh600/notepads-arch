@@ -24,6 +24,13 @@ and follows your Omarchy theme, accent, rounding, and language.
 - Line numbers, on the side each line starts from: English on the left,
   Hebrew on the right
 - Word spacing from 20% to 300% of a normal space
+- Spell checking with the system's Hunspell dictionaries: misspelled words
+  get a red wavy underline, and right-clicking one (or selecting it and
+  right-clicking) offers corrections and "Add to dictionary". Suggestions
+  only ever appear in that menu. Both the underline and the suggestions can
+  be turned off in Settings > Text & Editor. English is installed with the
+  package; add Hebrew with `sudo pacman -S hunspell-he`, or any other
+  `hunspell-*` dictionary
 - A global shortcut that opens a new window, tiled beside the others like a
   terminal, Super+Alt+N by default, changeable in Settings > Advanced
 - Word wrap, line highlight, font, tab width, and tint opacity in settings

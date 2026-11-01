@@ -1,12 +1,13 @@
 # Built by .github/workflows/release.yml for the notepads-arch pacman repo.
 pkgname=notepads-arch
-pkgver=0.3.2
+pkgver=0.4.0
 pkgrel=1
 pkgdesc='A clean, translucent, tabbed text editor for Arch and Omarchy'
 arch=('x86_64')
 url='https://github.com/Fresh600/notepads-arch'
 license=('MIT' 'OFL-1.1')
-depends=('qt6-base' 'qt6-declarative' 'qt6-svg' 'qt6-wayland' 'xdg-desktop-portal')
+depends=('qt6-base' 'qt6-declarative' 'qt6-svg' 'qt6-wayland' 'xdg-desktop-portal' 'hunspell' 'hunspell-en_us')
+optdepends=('hunspell-he: Hebrew spell checking')
 makedepends=('gcc' 'make')
 options=('!debug')
 provides=('notepads')

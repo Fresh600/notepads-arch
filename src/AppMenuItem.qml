@@ -39,6 +39,7 @@ MenuItem {
             text: item.text
             color: Style.text
             font.pixelSize: 13
+            font.bold: item.font.bold
             elide: Text.ElideRight
         }
 

@@ -33,6 +33,8 @@ QtObject {
         property int wordSpacingPercent: 100
         property bool lineNumbers: true
         property bool proportionalRtl: true
+        property bool spellUnderline: true
+        property bool spellSuggestions: true
         // The desktop-wide key that opens Notepads, and the one last written
         // to Hyprland; they differ until it has been applied.
         property string globalShortcut: "SUPER + ALT + N"
