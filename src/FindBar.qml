@@ -68,8 +68,8 @@ Rectangle {
             anchors.rightMargin: 10
             verticalAlignment: TextInput.AlignVCenter
             color: Style.text
-            selectionColor: Style.accent
-            selectedTextColor: Style.accentText
+            selectionColor: Style.selection
+            selectedTextColor: Style.selectionText
             font.pixelSize: 13
             clip: true
             selectByMouse: true

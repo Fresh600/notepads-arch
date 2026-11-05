@@ -122,11 +122,23 @@ void Theme::reload() {
     const auto mode = readMode(colors);
     const auto background = readColor(colors, "background", "#1e1e1e");
     const auto foreground = readColor(colors, "foreground", "#e6e6e6");
-    if (accent != m_accent || mode != m_mode || background != m_background || foreground != m_foreground) {
+    const auto selection = readColor(colors, "selection", {});
+    const auto muted = readColor(colors, "muted", {});
+    const auto darkBackground = readColor(colors, "dark_background", {});
+    const auto lighterBackground = readColor(colors, "lighter_background", {});
+    const auto red = readColor(colors, "red", {});
+    if (accent != m_accent || mode != m_mode || background != m_background || foreground != m_foreground
+        || selection != m_selection || muted != m_muted || darkBackground != m_darkBackground
+        || lighterBackground != m_lighterBackground || red != m_red) {
         m_accent = accent;
         m_mode = mode;
         m_background = background;
         m_foreground = foreground;
+        m_selection = selection;
+        m_muted = muted;
+        m_darkBackground = darkBackground;
+        m_lighterBackground = lighterBackground;
+        m_red = red;
         emit changed();
     }
 }
