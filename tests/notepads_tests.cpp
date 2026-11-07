@@ -178,6 +178,29 @@ private slots:
         QCOMPARE(document.toPlainText(), QString("a-1 b-2 c-3"));
     }
 
+    void replaceAllIgnoresAnInvalidPattern()
+    {
+        QTextDocument document;
+        document.setPlainText("a(b");
+        QCOMPARE(Backend::replaceAllIn(&document, "(", "x", {{"regex", true}}), 0);
+        QCOMPARE(document.toPlainText(), QString("a(b"));
+    }
+
+    void ownerOnlyWritesAreNeverWiderThanOwner()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath("secret.txt");
+        QVERIFY(Backend::writeAtomically(path, "x", true).isEmpty());
+        QCOMPARE(QFile::permissions(path) & 0x0777, QFileDevice::ReadUser | QFileDevice::WriteUser);
+    }
+
+    void folderUrlSurvivesSpecialCharacters()
+    {
+        Backend backend;
+        const QUrl url = backend.folderUrl("/home/me/a #1 100%/file.txt");
+        QCOMPARE(url.toLocalFile(), QString("/home/me/a #1 100%"));
+    }
+
     void replaceAllHandlesGrowingReplacement()
     {
         QTextDocument document;

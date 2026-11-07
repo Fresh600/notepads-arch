@@ -117,11 +117,11 @@ Item {
         column = position.column
     }
 
+    // Tab as spaces: like the tab character, it replaces a selection.
     function insertIndent() {
-        if (Style.prefs.tabSize > 0)
-            textArea.insert(textArea.cursorPosition, " ".repeat(Style.prefs.tabSize))
-        else
-            textArea.insert(textArea.cursorPosition, "\t")
+        if (hasSelection)
+            textArea.remove(textArea.selectionStart, textArea.selectionEnd)
+        textArea.insert(textArea.cursorPosition, " ".repeat(Style.prefs.tabSize))
     }
 
     // Swaps the misspelled word at the cursor (or the selected word) for
@@ -139,7 +139,9 @@ Item {
     function duplicateLine() {
         const text = textArea.text
         const position = textArea.cursorPosition
-        const start = text.lastIndexOf("\n", position - 1) + 1
+        // lastIndexOf() reads a negative index as 0, which at the very start
+        // would find a line break that sits after the cursor.
+        const start = position === 0 ? 0 : text.lastIndexOf("\n", position - 1) + 1
         let end = text.indexOf("\n", position)
         if (end < 0)
             end = text.length

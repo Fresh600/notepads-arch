@@ -84,14 +84,17 @@ AffixInfo readAffix(const QString &path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
         return info;
-    while (!file.atEnd()) {
+    // Both lines sit at the top of the file; the rest, often tens of
+    // thousands of rules, isn't needed here.
+    bool hasEncoding = false;
+    while (!file.atEnd() && !(hasEncoding && !info.tryLetters.isEmpty())) {
         const QByteArray line = file.readLine().trimmed();
-        if (line.startsWith("SET "))
+        if (line.startsWith("SET ")) {
             info.encoding = line.mid(4).trimmed();
-        else if (line.startsWith("TRY "))
+            hasEncoding = true;
+        } else if (line.startsWith("TRY ")) {
             info.tryLetters = line.mid(4).trimmed();
-        if (!info.tryLetters.isEmpty() && line.startsWith("SET "))
-            break;
+        }
     }
     return info;
 }

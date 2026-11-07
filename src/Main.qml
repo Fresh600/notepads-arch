@@ -110,7 +110,7 @@ ApplicationWindow {
             const reuse = currentEditor && !currentEditor.filePath && !currentEditor.modified && currentEditor.isEmpty()
             const doc = reuse ? currentEditor : createDoc()
             let error = doc.load(path, "")
-            if (error && createMissing && !backend.readFile(path).ok && backend.readFile(path).missing) {
+            if (error && createMissing && backend.readFile(path).missing) {
                 // A file named on the command line that doesn't exist yet
                 // opens empty and is created on the first save.
                 doc.filePath = path
@@ -127,6 +127,14 @@ ApplicationWindow {
             addRecent(path)
         }
         focusEditor()
+    }
+
+    function openDialog() {
+        backend.openDialog(currentEditor && currentEditor.filePath ? backend.folderOf(currentEditor.filePath) : "")
+    }
+
+    function showInFolder(path) {
+        Qt.openUrlExternally(backend.folderUrl(path))
     }
 
     function addRecent(path) {
@@ -431,42 +439,44 @@ ApplicationWindow {
 
     // Shortcuts
 
-    Shortcut { enabled: !win.modalOpen; sequences: ["Ctrl+N", "Ctrl+T"]; context: Qt.ApplicationShortcut; onActivated: win.newTab() }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+O"; context: Qt.ApplicationShortcut; onActivated: backend.openDialog(win.currentEditor && win.currentEditor.filePath ? backend.folderOf(win.currentEditor.filePath) : "") }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+S"; context: Qt.ApplicationShortcut; onActivated: if (win.currentEditor) win.saveDoc(win.currentEditor, null) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+Shift+S"; context: Qt.ApplicationShortcut; onActivated: if (win.currentEditor) win.saveDocAs(win.currentEditor, null) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+Alt+S"; context: Qt.ApplicationShortcut; onActivated: win.saveAll() }
-    Shortcut { enabled: !win.modalOpen; sequences: ["Ctrl+W", "Ctrl+F4"]; context: Qt.ApplicationShortcut; onActivated: if (win.currentEditor) win.closeTab(win.currentEditor) }
-    Shortcut { enabled: !win.modalOpen; sequences: ["Ctrl+Tab", "Ctrl+PgDown"]; context: Qt.ApplicationShortcut; onActivated: win.selectTab((win.current + 1) % win.docs.length) }
-    Shortcut { enabled: !win.modalOpen; sequences: ["Ctrl+Shift+Tab", "Ctrl+Backtab", "Ctrl+PgUp"]; context: Qt.ApplicationShortcut; onActivated: win.selectTab((win.current - 1 + win.docs.length) % win.docs.length) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+F"; context: Qt.ApplicationShortcut; onActivated: win.openFind(false) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+H"; context: Qt.ApplicationShortcut; onActivated: win.openFind(true) }
-    Shortcut { enabled: !win.modalOpen; sequence: "F3"; context: Qt.ApplicationShortcut; onActivated: findBar.visible ? win.findNext(false, false) : win.openFind(false) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Shift+F3"; context: Qt.ApplicationShortcut; onActivated: findBar.visible ? win.findNext(true, false) : win.openFind(false) }
-    Shortcut { enabled: !win.modalOpen; sequences: ["Ctrl+=", "Ctrl++", "Ctrl+Shift+="]; context: Qt.ApplicationShortcut; onActivated: win.setZoom(win.zoom + 10) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+-"; context: Qt.ApplicationShortcut; onActivated: win.setZoom(win.zoom - 10) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+0"; context: Qt.ApplicationShortcut; onActivated: win.setZoom(100) }
-    Shortcut { enabled: !win.modalOpen; sequence: "Alt+Z"; context: Qt.ApplicationShortcut; onActivated: Style.prefs.wrapWord = !Style.prefs.wrapWord }
-    Shortcut { enabled: !win.modalOpen; sequence: "Alt+P"; context: Qt.ApplicationShortcut; onActivated: win.togglePreview() }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+E"; context: Qt.ApplicationShortcut; onActivated: win.searchWeb() }
-    Shortcut {
+    component AppShortcut: Shortcut {
+        enabled: !win.modalOpen
+        context: Qt.ApplicationShortcut
+    }
+
+    AppShortcut { sequences: ["Ctrl+N", "Ctrl+T"]; onActivated: win.newTab() }
+    AppShortcut { sequence: "Ctrl+O"; onActivated: win.openDialog() }
+    AppShortcut { sequence: "Ctrl+S"; onActivated: if (win.currentEditor) win.saveDoc(win.currentEditor, null) }
+    AppShortcut { sequence: "Ctrl+Shift+S"; onActivated: if (win.currentEditor) win.saveDocAs(win.currentEditor, null) }
+    AppShortcut { sequence: "Ctrl+Alt+S"; onActivated: win.saveAll() }
+    AppShortcut { sequences: ["Ctrl+W", "Ctrl+F4"]; onActivated: if (win.currentEditor) win.closeTab(win.currentEditor) }
+    AppShortcut { sequences: ["Ctrl+Tab", "Ctrl+PgDown"]; onActivated: win.selectTab((win.current + 1) % win.docs.length) }
+    AppShortcut { sequences: ["Ctrl+Shift+Tab", "Ctrl+Backtab", "Ctrl+PgUp"]; onActivated: win.selectTab((win.current - 1 + win.docs.length) % win.docs.length) }
+    AppShortcut { sequence: "Ctrl+F"; onActivated: win.openFind(false) }
+    AppShortcut { sequence: "Ctrl+H"; onActivated: win.openFind(true) }
+    AppShortcut { sequence: "F3"; onActivated: findBar.visible ? win.findNext(false, false) : win.openFind(false) }
+    AppShortcut { sequence: "Shift+F3"; onActivated: findBar.visible ? win.findNext(true, false) : win.openFind(false) }
+    AppShortcut { sequences: ["Ctrl+=", "Ctrl++", "Ctrl+Shift+="]; onActivated: win.setZoom(win.zoom + 10) }
+    AppShortcut { sequence: "Ctrl+-"; onActivated: win.setZoom(win.zoom - 10) }
+    AppShortcut { sequence: "Ctrl+0"; onActivated: win.setZoom(100) }
+    AppShortcut { sequence: "Alt+Z"; onActivated: Style.prefs.wrapWord = !Style.prefs.wrapWord }
+    AppShortcut { sequence: "Alt+P"; onActivated: win.togglePreview() }
+    AppShortcut { sequence: "Ctrl+E"; onActivated: win.searchWeb() }
+    AppShortcut {
         enabled: !win.modalOpen && Style.prefs.correctionShortcut !== ""
         sequence: settings.qtSequence(Style.prefs.correctionShortcut)
-        context: Qt.ApplicationShortcut
         onActivated: if (win.currentEditor) win.currentEditor.acceptCorrection()
     }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+D"; context: Qt.ApplicationShortcut; onActivated: if (win.currentEditor) win.currentEditor.duplicateLine() }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+,"; context: Qt.ApplicationShortcut; onActivated: settings.opened ? settings.close() : settings.open() }
-    Shortcut { enabled: !win.modalOpen; sequence: "F1"; context: Qt.ApplicationShortcut; onActivated: shortcutsOverlay.opened ? shortcutsOverlay.close() : shortcutsOverlay.open() }
-    Shortcut { enabled: !win.modalOpen; sequence: "Ctrl+Q"; context: Qt.ApplicationShortcut; onActivated: win.requestQuit() }
+    AppShortcut { sequence: "Ctrl+D"; onActivated: if (win.currentEditor) win.currentEditor.duplicateLine() }
+    AppShortcut { sequence: "Ctrl+,"; onActivated: settings.opened ? settings.close() : settings.open() }
+    AppShortcut { sequence: "F1"; onActivated: shortcutsOverlay.opened ? shortcutsOverlay.close() : shortcutsOverlay.open() }
+    AppShortcut { sequence: "Ctrl+Q"; onActivated: win.requestQuit() }
 
     Instantiator {
         model: 9
-        delegate: Shortcut {
+        delegate: AppShortcut {
             required property int index
-            enabled: !win.modalOpen
             sequence: "Ctrl+" + (index + 1)
-            context: Qt.ApplicationShortcut
             // Ctrl+9 goes to the last tab, as in browsers.
             onActivated: win.selectTab(index === 8 ? win.docs.length - 1 : index)
         }
@@ -654,7 +664,7 @@ ApplicationWindow {
                         elide: Text.ElideMiddle
                         clickable: win.currentEditor !== null && win.currentEditor.filePath !== ""
                         tip: clickable ? qsTr("Open containing folder") : ""
-                        onClicked: Qt.openUrlExternally("file://" + backend.folderOf(win.currentEditor.filePath))
+                        onClicked: win.showInFolder(win.currentEditor.filePath)
                     }
                     StatusItem {
                         visible: win.currentEditor !== null && win.currentEditor.modified
@@ -702,7 +712,7 @@ ApplicationWindow {
             text: qsTr("Open")
             iconName: "open"
             shortcut: "Ctrl+O"
-            onTriggered: backend.openDialog(win.currentEditor && win.currentEditor.filePath ? backend.folderOf(win.currentEditor.filePath) : "")
+            onTriggered: win.openDialog()
         }
         AppMenu {
             id: recentMenu
@@ -801,7 +811,7 @@ ApplicationWindow {
             text: qsTr("Open containing folder")
             iconName: "folder"
             enabled: tabMenu.doc && tabMenu.doc.filePath !== ""
-            onTriggered: Qt.openUrlExternally("file://" + backend.folderOf(tabMenu.doc.filePath))
+            onTriggered: win.showInFolder(tabMenu.doc.filePath)
         }
     }
 

@@ -4,6 +4,7 @@
 #include <QFont>
 #include <QObject>
 #include <QStringList>
+#include <QUrl>
 #include <QTextCursor>
 #include <QVariantMap>
 #include <memory>
@@ -67,6 +68,7 @@ public:
 
     Q_INVOKABLE QString fileName(const QString &path) const;
     Q_INVOKABLE QString folderOf(const QString &path) const;
+    Q_INVOKABLE QUrl folderUrl(const QString &path) const;
     Q_INVOKABLE QString urlToPath(const QUrl &url) const;
     Q_INVOKABLE QString suggestedPath(const QString &name) const;
     Q_INVOKABLE void copyToClipboard(const QString &text) const;
@@ -89,7 +91,7 @@ public:
                             const QVariantMap &options);
     static QString replacementFor(const QString &matched, const QString &query, const QString &replacement,
                                   const QVariantMap &options);
-    static QString writeAtomically(const QString &path, const QByteArray &data);
+    static QString writeAtomically(const QString &path, const QByteArray &data, bool ownerOnly = false);
 
 signals:
     void filesChosen(const QStringList &paths);

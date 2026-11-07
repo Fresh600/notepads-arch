@@ -40,6 +40,48 @@ QRegularExpression patternFor(const QString &query, const QVariantMap &options, 
     return QRegularExpression(pattern, flags);
 }
 
+// find() makes a regular expression case-insensitive unless told otherwise,
+// whatever the expression's own options say.
+QTextDocument::FindFlags findFlags(const QVariantMap &options, bool backward) {
+    QTextDocument::FindFlags flags;
+    if (backward)
+        flags |= QTextDocument::FindBackward;
+    if (option(options, "matchCase"))
+        flags |= QTextDocument::FindCaseSensitively;
+    return flags;
+}
+
+QTextCursor findWith(QTextDocument *document, const QRegularExpression &expression, int from,
+                     QTextDocument::FindFlags flags, bool wrap, bool *wrapped) {
+    const bool backward = flags.testFlag(QTextDocument::FindBackward);
+    auto search = [&](int position) {
+        QTextCursor cursor = document->find(expression, position, flags);
+        // An empty match ("^", "\b") selects nothing and can't be stepped
+        // through, so it doesn't count as found.
+        return cursor.hasSelection() ? cursor : QTextCursor();
+    };
+    QTextCursor cursor = search(from);
+    if (cursor.isNull() && wrap) {
+        cursor = search(backward ? document->characterCount() - 1 : 0);
+        if (wrapped && !cursor.isNull())
+            *wrapped = true;
+    }
+    return cursor;
+}
+
+// Both \1 and $1 name a captured group in a replacement.
+QString withBackslashGroups(const QString &replacement) {
+    static const QRegularExpression dollar(QStringLiteral("\\$(\\d)"));
+    QString after;
+    qsizetype last = 0;
+    for (auto it = dollar.globalMatch(replacement); it.hasNext();) {
+        const auto m = it.next();
+        after += replacement.mid(last, m.capturedStart() - last) + u'\\' + m.captured(1);
+        last = m.capturedEnd();
+    }
+    return after + replacement.mid(last);
+}
+
 QTextDocument *textDocumentOf(QQuickTextDocument *document) {
     return document ? document->textDocument() : nullptr;
 }
@@ -120,7 +162,7 @@ QString Backend::writeFile(QQuickTextDocument *document, const QString &path, co
                                                    TextCodec::isKnownLineEnding(lineEnding) ? lineEnding : "lf"));
 }
 
-QString Backend::writeAtomically(const QString &path, const QByteArray &data) {
+QString Backend::writeAtomically(const QString &path, const QByteArray &data, bool ownerOnly) {
     const QFileInfo info(path);
     const bool existed = info.exists();
     const auto permissions = existed ? QFile::permissions(path) : QFileDevice::Permissions();
@@ -128,6 +170,10 @@ QString Backend::writeAtomically(const QString &path, const QByteArray &data) {
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly))
         return tr("Could not save %1: %2").arg(info.fileName(), file.errorString());
+    // Set on the temporary file, so the target is never readable by others,
+    // not even for the moment between the rename and a later chmod.
+    if (ownerOnly)
+        file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
     if (file.write(data) != data.size()) {
         const QString error = file.errorString();
         file.cancelWriting();
@@ -137,7 +183,7 @@ QString Backend::writeAtomically(const QString &path, const QByteArray &data) {
         return tr("Could not save %1: %2").arg(info.fileName(), file.errorString());
 
     // The rename replaces the file, so keep the permissions it had.
-    if (existed)
+    if (existed && !ownerOnly)
         QFile::setPermissions(path, permissions);
     return {};
 }
@@ -187,27 +233,7 @@ QTextCursor Backend::findIn(QTextDocument *document, const QString &query, int f
         return {};
     }
 
-    // find() makes a regular expression case-insensitive unless told
-    // otherwise, whatever the expression's own options say.
-    QTextDocument::FindFlags flags;
-    if (backward)
-        flags |= QTextDocument::FindBackward;
-    if (option(options, "matchCase"))
-        flags |= QTextDocument::FindCaseSensitively;
-    auto search = [&](int position) {
-        QTextCursor cursor = document->find(expression, position, flags);
-        // An empty match ("^", "\b") selects nothing and can't be stepped
-        // through, so it doesn't count as found.
-        return cursor.hasSelection() ? cursor : QTextCursor();
-    };
-
-    QTextCursor cursor = search(from);
-    if (cursor.isNull() && wrap) {
-        cursor = search(backward ? document->characterCount() - 1 : 0);
-        if (wrapped && !cursor.isNull())
-            *wrapped = true;
-    }
-    return cursor;
+    return findWith(document, expression, from, findFlags(options, backward), wrap, wrapped);
 }
 
 QVariantMap Backend::find(QQuickTextDocument *document, const QString &query, int from, bool backward,
@@ -224,18 +250,8 @@ QString Backend::replacementFor(const QString &matched, const QString &query, co
                                 const QVariantMap &options) {
     if (!option(options, "regex"))
         return replacement;
-    // Both \1 and $1 name a captured group.
-    static const QRegularExpression dollar(QStringLiteral("\\$(\\d)"));
-    QString after;
-    qsizetype last = 0;
-    for (auto it = dollar.globalMatch(replacement); it.hasNext();) {
-        const auto m = it.next();
-        after += replacement.mid(last, m.capturedStart() - last) + u'\\' + m.captured(1);
-        last = m.capturedEnd();
-    }
-    after += replacement.mid(last);
     QString out = matched;
-    out.replace(patternFor(query, options, true), after);
+    out.replace(patternFor(query, options, true), withBackslashGroups(replacement));
     return out;
 }
 
@@ -260,15 +276,28 @@ int Backend::replaceAllIn(QTextDocument *document, const QString &query, const Q
                           const QVariantMap &options) {
     if (!document || query.isEmpty())
         return 0;
+    // Compiled once: a document can hold thousands of matches.
+    const QRegularExpression expression = patternFor(query, options);
+    if (!expression.isValid())
+        return 0;
+    const bool regex = option(options, "regex");
+    const QRegularExpression anchored = regex ? patternFor(query, options, true) : QRegularExpression();
+    const QString groups = regex ? withBackslashGroups(replacement) : QString();
+    const auto flags = findFlags(options, false);
+
     int count = 0;
     int position = 0;
     QTextCursor edit(document);
     edit.beginEditBlock();
     while (true) {
-        QTextCursor match = findIn(document, query, position, false, options, false);
+        QTextCursor match = findWith(document, expression, position, flags, false, nullptr);
         if (match.isNull())
             break;
-        const QString text = replacementFor(match.selectedText(), query, replacement, options);
+        QString text = replacement;
+        if (regex) {
+            text = match.selectedText();
+            text.replace(anchored, groups);
+        }
         match.insertText(text);
         position = match.position();
         ++count;
@@ -331,6 +360,11 @@ QFont Backend::gutterFont(const QString &family, qreal pointSize) const {
     return font;
 }
 
+QUrl Backend::folderUrl(const QString &path) const {
+    // A URL built by hand would break on #, ? and % in a folder's name.
+    return QUrl::fromLocalFile(folderOf(path));
+}
+
 QString Backend::fileName(const QString &path) const {
     return QFileInfo(path).fileName();
 }
@@ -377,10 +411,9 @@ QString Backend::saveSession(const QVariantMap &session) const {
     if (!m_sessionLock || !m_sessionLock->isLocked())
         return tr("Another Notepads window keeps the session.");
     const QString path = m_stateDirectory + "/session.json";
-    const QString error = writeAtomically(path, QJsonDocument(QJsonObject::fromVariantMap(session)).toJson(QJsonDocument::Compact));
     // Unsaved tabs can hold anything, so only the user may read them.
-    QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
-    return error;
+    return writeAtomically(path, QJsonDocument(QJsonObject::fromVariantMap(session)).toJson(QJsonDocument::Compact),
+                           true);
 }
 
 void Backend::openDialog(const QString &folder) {

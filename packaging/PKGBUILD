@@ -1,6 +1,6 @@
 # Built by .github/workflows/release.yml for the notepads-arch pacman repo.
 pkgname=notepads-arch
-pkgver=0.5.2
+pkgver=0.5.3
 pkgrel=1
 pkgdesc='A clean, translucent, tabbed text editor for Arch and Omarchy'
 arch=('x86_64')
