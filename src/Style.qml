@@ -23,7 +23,7 @@ QtObject {
         property string searchEngine: "google"
         // "system" follows Omarchy's light or dark theme.
         property string themeMode: "system"
-        property bool omarchyColors: false
+        property bool omarchyColors: true
         property real tintOpacity: 0.8
         property bool omarchyAccent: true
         property string customAccent: "#0078d4"
@@ -45,31 +45,50 @@ QtObject {
         property var recentFiles: []
     }
 
-    readonly property bool dark: prefs.themeMode === "dark"
-                                 || (prefs.themeMode === "system" && theme.mode !== "light")
+    // With Omarchy colors on, everything comes from the theme's colors.toml;
+    // entries a theme leaves out fall back to mixes of its background and
+    // foreground, so partial themes still look whole.
+    readonly property bool themed: prefs.omarchyColors
+    readonly property bool dark: themed ? theme.mode !== "light"
+                                 : (prefs.themeMode === "dark"
+                                    || (prefs.themeMode === "system" && theme.mode !== "light"))
 
-    readonly property color base: prefs.omarchyColors ? theme.background : (dark ? "#202020" : "#f3f3f3")
-    readonly property color text: prefs.omarchyColors ? theme.foreground : (dark ? "#ececec" : "#1b1b1b")
+    readonly property color base: themed ? theme.background : (dark ? "#202020" : "#f3f3f3")
+    readonly property color text: themed ? theme.foreground : (dark ? "#ececec" : "#1b1b1b")
     readonly property color accent: prefs.omarchyAccent ? theme.accent : prefs.customAccent
     readonly property color accentText: luminance(accent) > 0.5 ? "#000000" : "#ffffff"
 
+    // Surfaces: the theme's own darker and lighter backgrounds when present.
+    readonly property color darker: themed && theme.darkBackground ? theme.darkBackground
+                                    : mix(base, "#000000", dark ? 0.18 : 0.04)
+    readonly property color lighter: themed && theme.lighterBackground ? theme.lighterBackground
+                                     : mix(base, text, dark ? 0.08 : 0.02)
+    readonly property color selection: themed && theme.selection ? theme.selection : accent
+    readonly property color selectionText: themed && theme.selection ? text : accentText
+
     readonly property real opacity: Math.max(0.2, Math.min(1, prefs.tintOpacity))
     readonly property color tint: withAlpha(base, opacity)
-    readonly property color activeTab: withAlpha(mix(base, text, dark ? 0.07 : 0.0), dark ? opacity : 1)
+    readonly property color activeTab: themed && theme.lighterBackground ? withAlpha(lighter, opacity)
+                                       : withAlpha(mix(base, text, dark ? 0.07 : 0.0), dark ? opacity : 1)
     readonly property color tabHover: withAlpha(mix(base, text, 0.035), opacity)
-    readonly property color strip: withAlpha(dark ? base : mix(base, "#000000", 0.05), opacity)
-    readonly property color status: withAlpha(mix(base, "#000000", dark ? 0.18 : 0.04), opacity)
-    readonly property color panel: withAlpha(mix(base, text, dark ? 0.06 : 0.0), 0.985)
-    readonly property color menu: withAlpha(mix(base, text, dark ? 0.08 : 0.02), 0.99)
-    readonly property color field: withAlpha(mix(base, text, dark ? 0.1 : 0.0), 1)
+    readonly property color strip: themed && theme.darkBackground ? withAlpha(darker, opacity)
+                                   : withAlpha(dark ? base : mix(base, "#000000", 0.05), opacity)
+    readonly property color status: withAlpha(darker, opacity)
+    readonly property color panel: themed && theme.lighterBackground ? withAlpha(lighter, 0.985)
+                                   : withAlpha(mix(base, text, dark ? 0.06 : 0.0), 0.985)
+    readonly property color menu: withAlpha(lighter, 0.99)
+    readonly property color field: themed && theme.darkBackground ? withAlpha(darker, 1)
+                                   : withAlpha(mix(base, text, dark ? 0.1 : 0.0), 1)
 
-    readonly property color muted: withAlpha(text, 0.64)
-    readonly property color faint: withAlpha(text, 0.36)
-    readonly property color border: withAlpha(text, dark ? 0.1 : 0.14)
+    readonly property color muted: themed && theme.muted ? theme.muted : withAlpha(text, 0.64)
+    readonly property color faint: withAlpha(muted, 0.6)
+    readonly property color border: themed && theme.selection ? withAlpha(theme.selection, 0.9)
+                                    : withAlpha(text, dark ? 0.1 : 0.14)
     readonly property color hover: withAlpha(text, 0.08)
     readonly property color pressed: withAlpha(text, 0.13)
-    readonly property color lineHighlight: withAlpha(text, dark ? 0.05 : 0.06)
-    readonly property color danger: dark ? "#ff6b78" : "#c42b1c"
+    readonly property color lineHighlight: themed && theme.selection ? withAlpha(theme.selection, 0.5)
+                                           : withAlpha(text, dark ? 0.05 : 0.06)
+    readonly property color danger: themed && theme.red ? theme.red : (dark ? "#ff6b78" : "#c42b1c")
 
     readonly property var rtlFamilies: backend.rightToLeftFamilies()
     readonly property var editorFamilies: prefs.proportionalRtl ? rtlFamilies.concat([prefs.fontFamily]) : [prefs.fontFamily]

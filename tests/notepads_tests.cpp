@@ -373,6 +373,25 @@ private slots:
         QTRY_COMPARE(theme.mode(), QString("dark"));
     }
 
+    void themeReadsExtendedPalette()
+    {
+        QTemporaryDir dir;
+        QDir(dir.path()).mkpath("theme");
+        write(dir.path() + "/theme/colors.toml",
+              "background = \"#1c1b19\"\nselection = \"#45413a\"\nmuted = \"#8e8373\"\n"
+              "dark_background = \"#161412\"\nlighter_background = \"#232220\"\nred = \"#c5564a\"\n");
+        Theme theme(dir.path());
+        QCOMPARE(theme.selection(), QString("#45413a"));
+        QCOMPARE(theme.muted(), QString("#8e8373"));
+        QCOMPARE(theme.darkBackground(), QString("#161412"));
+        QCOMPARE(theme.lighterBackground(), QString("#232220"));
+        QCOMPARE(theme.red(), QString("#c5564a"));
+
+        write(dir.path() + "/theme/colors.toml", "background = \"#1c1b19\"\n");
+        QTRY_COMPARE(theme.red(), QString());
+        QCOMPARE(theme.selection(), QString());
+    }
+
     void themeFollowsHyprlandRounding()
     {
         QTemporaryDir dir;

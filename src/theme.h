@@ -15,6 +15,12 @@ class Theme : public QObject {
     Q_PROPERTY(QString mode READ mode NOTIFY changed)
     Q_PROPERTY(QString background READ background NOTIFY changed)
     Q_PROPERTY(QString foreground READ foreground NOTIFY changed)
+    // Optional palette entries; empty when the theme doesn't define them.
+    Q_PROPERTY(QString selection READ selection NOTIFY changed)
+    Q_PROPERTY(QString muted READ muted NOTIFY changed)
+    Q_PROPERTY(QString darkBackground READ darkBackground NOTIFY changed)
+    Q_PROPERTY(QString lighterBackground READ lighterBackground NOTIFY changed)
+    Q_PROPERTY(QString red READ red NOTIFY changed)
 
 public:
     explicit Theme(const QString &currentDirectory = {}, QObject *parent = nullptr, const QString &hyprctl = {});
@@ -26,6 +32,11 @@ public:
     QString mode() const { return m_mode; }
     QString background() const { return m_background; }
     QString foreground() const { return m_foreground; }
+    QString selection() const { return m_selection; }
+    QString muted() const { return m_muted; }
+    QString darkBackground() const { return m_darkBackground; }
+    QString lighterBackground() const { return m_lighterBackground; }
+    QString red() const { return m_red; }
 
     static QString readAccent(const QString &path);
     static QString readColor(const QString &path, const QString &key, const QString &fallback);
@@ -45,6 +56,7 @@ private:
     QString m_mode = "dark";
     QString m_background = "#1e1e1e";
     QString m_foreground = "#e6e6e6";
+    QString m_selection, m_muted, m_darkBackground, m_lighterBackground, m_red;
     QFileSystemWatcher m_watcher;
     QTimer m_debounce;
     QString m_hyprctl;
