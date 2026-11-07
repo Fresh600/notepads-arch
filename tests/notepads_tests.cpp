@@ -1,3 +1,4 @@
+#include <QFontInfo>
 #include <QDir>
 #include <QFile>
 #include <QFontMetricsF>
@@ -178,6 +179,14 @@ private slots:
         QCOMPARE(document.toPlainText(), QString("a-1 b-2 c-3"));
     }
 
+    void gutterFontIsTheEditorsFace()
+    {
+        Backend backend;
+        const QFont gutter = backend.gutterFont("monospace", 13);
+        const QFont editor = backend.editorFont({"monospace"}, 13, 100);
+        QCOMPARE(QFontInfo(gutter).family(), QFontInfo(editor).family());
+    }
+
     void replaceAllIgnoresAnInvalidPattern()
     {
         QTextDocument document;
@@ -346,8 +355,9 @@ private slots:
         QVERIFY(LineNumberGutter::isRightToLeft(document.findBlockByNumber(1)));
 
         QFont font("monospace");
-        // Three digits' room up to line 999, then it grows.
-        QCOMPARE(LineNumberGutter::widthFor(5, font), LineNumberGutter::widthFor(999, font));
+        // Two digits' room up to line 99, then it grows with each digit.
+        QCOMPARE(LineNumberGutter::widthFor(5, font), LineNumberGutter::widthFor(99, font));
+        QVERIFY(LineNumberGutter::widthFor(100, font) > LineNumberGutter::widthFor(99, font));
         QVERIFY(LineNumberGutter::widthFor(1000, font) > LineNumberGutter::widthFor(999, font));
     }
 
@@ -413,6 +423,17 @@ private slots:
         write(dir.path() + "/theme/colors.toml", "background = \"#1c1b19\"\n");
         QTRY_COMPARE(theme.red(), QString());
         QCOMPARE(theme.selection(), QString());
+    }
+
+    void themeColorsAreStrings()
+    {
+        // The theme hands QML plain strings; Style.withAlpha() has to read
+        // those as colors (a string has no .r, which painted black).
+        QTemporaryDir dir;
+        QDir(dir.path()).mkpath("theme");
+        write(dir.path() + "/theme/colors.toml", "selection = \"#45413a\"\n");
+        Theme theme(dir.path());
+        QCOMPARE(QColor(theme.selection()).red(), 0x45);
     }
 
     void themeFollowsHyprlandRounding()

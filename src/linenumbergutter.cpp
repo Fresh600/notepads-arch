@@ -28,9 +28,9 @@ bool LineNumberGutter::isRightToLeft(const QTextBlock &block) {
 
 qreal LineNumberGutter::widthFor(int lineCount, const QFont &font) {
     const int digits = QString::number(qMax(1, lineCount)).size();
-    // At least three digits wide, so the editor doesn't shift at line 10
-    // and line 100.
-    return QFontMetricsF(font).horizontalAdvance(QLatin1Char('9')) * qMax(3, digits) + outerPadding + innerPadding;
+    // Two digits wide at least, so a short file's numbers sit snug against
+    // the text, and the editor only shifts at line 100.
+    return QFontMetricsF(font).horizontalAdvance(QLatin1Char('9')) * qMax(2, digits) + outerPadding + innerPadding;
 }
 
 void LineNumberGutter::setDocument(QQuickTextDocument *document) {
@@ -145,8 +145,13 @@ void LineNumberGutter::paint(QPainter *painter) {
     if (!layout)
         return;
 
+    // The current line's number is bold; digits keep their width in the
+    // editor's monospace face, so the column stays aligned.
+    QFont boldFont = m_font;
+    boldFont.setBold(true);
     painter->setFont(m_font);
     const QFontMetricsF metrics(m_font);
+    const QFontMetricsF boldMetrics(boldFont);
 
     // The top of the view in document coordinates. Start a paragraph early
     // so one that begins above the view but shows its first line is kept.
@@ -176,14 +181,18 @@ void LineNumberGutter::paint(QPainter *painter) {
 
         const int number = block.blockNumber() + 1;
         const QString text = QString::number(number);
-        painter->setPen(number == m_currentLine ? m_currentColor : m_color);
+        const bool current = number == m_currentLine;
+        const QFontMetricsF &numberMetrics = current ? boldMetrics : metrics;
+        painter->setPen(current ? m_currentColor : m_color);
+        painter->setFont(current ? boldFont : m_font);
         // Right-aligned in both gutters: against the text on the left, and
         // against the window's edge on the right, where Hebrew starts.
-        const auto alignedX = [&](const QString &label) {
-            return m_rightSide ? width() - outerPadding - metrics.horizontalAdvance(label)
-                               : width() - innerPadding - metrics.horizontalAdvance(label);
+        const auto alignedX = [&](const QString &label, const QFontMetricsF &fm) {
+            return m_rightSide ? width() - outerPadding - fm.horizontalAdvance(label)
+                               : width() - innerPadding - fm.horizontalAdvance(label);
         };
-        painter->drawText(QPointF(alignedX(text), baseline), text);
+        painter->drawText(QPointF(alignedX(text, numberMetrics), baseline), text);
+        painter->setFont(m_font);
 
         // A paragraph that wraps keeps its one number; its later rows get a
         // continuation mark, so a wrapped row isn't mistaken for a new line.
@@ -196,7 +205,7 @@ void LineNumberGutter::paint(QPainter *painter) {
                     continue;
                 if (lineBaseline - line.ascent() > height())
                     break;
-                painter->drawText(QPointF(alignedX(continuation), lineBaseline), continuation);
+                painter->drawText(QPointF(alignedX(continuation, metrics), lineBaseline), continuation);
             }
         }
     }

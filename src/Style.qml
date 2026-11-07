@@ -96,8 +96,11 @@ QtObject {
     readonly property int radius: theme.radius
     readonly property int smallRadius: Math.min(4, theme.radius)
 
+    // c may be a color or a string such as "#45413a" (the theme hands out
+    // strings, and a string has no .r, which would paint black).
     function withAlpha(c, a) {
-        return Qt.rgba(c.r, c.g, c.b, a)
+        const x = Qt.color(c)
+        return Qt.rgba(x.r, x.g, x.b, a)
     }
 
     function mix(a, b, t) {

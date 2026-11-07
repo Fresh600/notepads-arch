@@ -176,7 +176,7 @@ Item {
         textTop: textArea.topPadding
         currentLine: editor.line
         color: Style.faint
-        currentColor: Style.muted
+        currentColor: Style.text
         font: backend.gutterFont(Style.prefs.fontFamily, Style.prefs.fontSize * editor.zoom / 100)
         clip: true
     }

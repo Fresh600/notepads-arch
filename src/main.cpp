@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     app.setApplicationName("notepads");
     app.setOrganizationName("notepads");
-    app.setApplicationVersion("0.5.3");
+    app.setApplicationVersion("0.5.4");
 
     // Matches the window to notepads.desktop, so the compositor (Wayland
     // app_id) and the launcher pick up the installed icon.
